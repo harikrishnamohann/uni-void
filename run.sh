@@ -1,0 +1,2 @@
+make && ./target/debug $@
+
