@@ -1,15 +1,15 @@
 CC = gcc
-# CFLAGS =
+CFLAGS = -g
 OBJ_DIR = ./obj
 
 all: debug
 
-debug:
+debug: arena
 ### write the compilation commands here ###
-	$(CC) $(CFLAGS) src/main.c -o target/debug
+	$(CC) $(CFLAGS) $(OBJ_DIR)/arena.o src/main.c -o target/debug
 
 arena:
-	$(CC) -c ./lib/arena_allocator/arena.c -o $(OBJ_DIR)/arena.o
+	$(CC) -c ./lib/arena_allocator/arena.c -o $(OBJ_DIR)/arena.o $(CFLAGS)
 
 clean:
-	rm $(OBJ_DIR)/*
+	rm $(OBJ_DIR)/* debug/target
