@@ -19,21 +19,21 @@ Reference materials: https://m.youtube.com/watch?v=ZisNZcQn6fo&pp=ygULYXJlbmEgYW
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "../../include/types.h"
+#include <stdint.h>
 
 // Prototype of Arena
 typedef struct Arena {
-  u64 capacity; // holds total size of chunk of memory.
-  u64 allocated_size; // total used size in the chunk.
-  u8 *arena_buf; // stores the actual chunk.
+  uint64_t capacity; // holds total size of chunk of memory.
+  uint64_t allocated_size; // total used size in the chunk.
+  uint8_t *arena_buf; // stores the actual chunk.
   struct Arena *next_node; // to face arena overflow.
 } Arena;
 
 // initializes the arena chunk with a capacity of 
 // ARENA_[8,16,32,..,2048] or any custom integer greater than 0.
-Arena *arena_init(u64 capacity) {
+Arena *arena_init(uint64_t capacity) {
     assert(capacity != 0);
-    u8 *new = malloc(sizeof(u8) * capacity);
+    uint8_t *new = malloc(sizeof(uint8_t) * capacity);
     assert(new != NULL);
     Arena *arena = malloc(sizeof(Arena));
     arena->capacity = capacity;
@@ -45,7 +45,7 @@ Arena *arena_init(u64 capacity) {
 
 // Returns required size of memory from the arena to use.
 // Returns NULL if the requested size is more than its capacity.
-void *arena_alloc(Arena *arena, u64 size) {
+void *arena_alloc(Arena *arena, uint64_t size) {
   assert(size < arena->capacity);
   Arena *current = arena;
   // if the requsted size does not fit inside the current instance,
@@ -69,7 +69,7 @@ void *arena_alloc(Arena *arena, u64 size) {
 void arena_visualize(const Arena *arena) {
   const Arena *current = arena;
   while(current != NULL) {
-    printf("capacity: %llu, size: %llu, buf: %p, nxt: %p\n",
+    printf("capacity: %lu, size: %lu, buf: %p, nxt: %p\n",
            current->capacity,
            current->allocated_size,
            current->arena_buf,

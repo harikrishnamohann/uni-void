@@ -1,7 +1,7 @@
 #ifndef __ARENA_H__
 #define __ARENA_H__
 
-#include "types.h"
+#include <stdint.h>
 
 #define ARENA_16 16
 #define ARENA_32 32
@@ -13,19 +13,19 @@
 
 // Prototype of Arena
 typedef struct Arena {
-  u64 capacity; // holds total size of chunk of memory.
-  u64 allocated_size; // total used size in the chunk.
-  u8 *arena_buf; // stores the actual chunk.
+  uint64_t capacity; // holds total size of chunk of memory.
+  uint64_t allocated_size; // total used size in the chunk.
+  uint8_t *arena_buf; // stores the actual chunk.
   struct Arena *next_node; // to face arena overflow.
 } Arena;
 
 // initializes the arena chunk with a capacity of 
 // ARENA_[8,16,32,..,2048] or any custom integer greater than 0.
-Arena *arena_init(u64 capacity);
+Arena *arena_init(uint64_t capacity);
 
 // Returns required size of memory from the arena to use.
 // Returns NULL if the requested size is more than its capacity.
-void *arena_alloc(Arena *arena, u64 size);
+void *arena_alloc(Arena *arena, uint64_t size);
 
 // To get an overview of the arena.
 void arena_visualize(const Arena *arena);
