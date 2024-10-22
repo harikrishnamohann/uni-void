@@ -1,3 +1,12 @@
+/*
+Todo:
+  1. implement
+      - ll_remove_first_key()
+      - ll_remove_all_key()
+      - ll_modify_first_key()
+      - ll_modify_all_key()
+*/
+
 #include <stdio.h>
 #include "../include/arena.h"
 #include <stdint.h>
@@ -245,7 +254,7 @@ char* ll_remove_from_rear(LinkedList* lnList) {
 }
 
 // Remove the first occurance of key from linked list and return it.
-char* ll_remove_using_key(LinkedList* lnList, char* key) {
+char* ll_remove_first_key(LinkedList* lnList, char* key) {
   if(lnList->size == 0) {
     printf("err: ll_remove_using_key(): Can't remove element from an empty list.\n");
     exit(1);
