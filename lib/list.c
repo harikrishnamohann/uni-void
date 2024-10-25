@@ -134,7 +134,7 @@ static void* remove_node(List* list, Node* targetNode) {
 // Initialize and return LinkedList type.
 List list_init(uint64_t capacity, uint64_t unit_size) {
   return (List) {
-    .arena = arena_init((sizeof(Node) + unit_size) * 2),
+    .arena = arena_init((sizeof(Node) + unit_size) * ((capacity == 0) ? 2: capacity)),
     .head = NULL,
     .tail = NULL,
     .len = 0,
@@ -151,6 +151,11 @@ int8_t list_is_empty(const List *restrict list) {
 // Returns 1 if list is full, 0 otherwise.
 int8_t list_is_full(const List *restrict list) {
   return (list->len >= list->capacity && list->capacity != 0);
+}
+
+// Returns length/size of the List.
+uint64_t list_length(const List *restrict list) {
+  return list->len;
 }
 
 // Insert data at the front of list
