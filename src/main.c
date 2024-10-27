@@ -3,5 +3,6 @@
 #include <stdint.h>
 
 int main() {
-  printf("I see you!\n");
+  printf("open your mind, consider different perspectives.\n");
+  return 0;
 }

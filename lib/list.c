@@ -58,7 +58,7 @@ static Node* get_node_using_index(const List *restrict list, int64_t pos) {
     return NULL;
   }
   size_t index;
-  Node *current;
+  Node *current = NULL;
   if (pos < (list->len) / 2) { // traverse from head 
     index = 0;
     current = list->head;
@@ -220,37 +220,39 @@ int list_insert_at(List* list, int64_t position, void* content) {
     }
 
     Node *targetNode = NULL;
-    if (position < 0) {
-      position = list->len + position;
-      if(position < 0) {
-        DEBUG_PRINT("err: ll_insert_at_pos(): pos: %lu is out of bound 0.\n", position);
-        return 1;
-      }
-      if(position == -1) {
-        list_insert_at_front(list, content);
-      } else {
-        targetNode = get_node_using_index(list, position);
-        if (targetNode == NULL) {
-          DEBUG_PRINT("err: ll_insert_at_pos(): pos: %lu is out of bound 1.\n", position);
-          return 1;
-        }
-        insert_after_target_node(list, targetNode, newNode);
-      }
-    } else if(position == 0) {
+    if(position == 0) {
       list_insert_at_front(list, content);
-    } else if(position == list->len) {
+    } else if (position == -1 || position == list->len - 1) {
       list_insert_at_rear(list, content);
     } else {
-      if(position > list->len) {
-        DEBUG_PRINT("err: ll_insert_at_pos(): pos: %lu is out of bound 2.\n", position);
-        return 1;
+      if (position < 0) {
+        position = list->len + position;
+        if(position < 0) {
+          DEBUG_PRINT("err: ll_insert_at(): pos: %lu is out of bound 0.\n", position);
+          return 1;
+        }
+        if(position == -1) {
+          list_insert_at_front(list, content);
+        } else {
+          targetNode = get_node_using_index(list, position);
+          if (targetNode == NULL) {
+            DEBUG_PRINT("err: ll_insert_a(): pos: %lu is out of bound 1.\n", position);
+            return 1;
+          }
+          insert_after_target_node(list, targetNode, newNode);
+        } 
+      } else {
+        if(position > list->len) {
+          DEBUG_PRINT("err: ll_insert_at_pos(): pos: %lu is out of bound 2.\n", position);
+          return 1;
+        }
+        targetNode = get_node_using_index(list, position);
+        if (targetNode == NULL) {
+          DEBUG_PRINT("err: ll_insert_at_pos(): pos: %lu is out of bound 3.\n", position);
+          return 1;
+        }
+        insert_before_target_node(list, targetNode, newNode);
       }
-      targetNode = get_node_using_index(list, position);
-      if (targetNode == NULL) {
-        DEBUG_PRINT("err: ll_insert_at_pos(): pos: %lu is out of bound 3.\n", position);
-        return 1;
-      }
-      insert_before_target_node(list, targetNode, newNode);
     }
   } else {
     DEBUG_PRINT("err: list_insert_at_front(): Insertion is not possible, list is full.\n");
