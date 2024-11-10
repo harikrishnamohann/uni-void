@@ -63,6 +63,14 @@ Deallocating the list:
 #define REAR -1
 #define DYNAMIC 0
 
+typedef enum ListErr {
+  LIST_SUCCESS = 0,
+  LIST_ALLOC_ERR = -1,
+  LIST_FULL_ERR = 1,
+  LIST_EMPTY_ERR = 2,
+  LIST_INDEX_OUT_OF_BOUNDS_ERR = 3,
+} ListErr;
+
 typedef struct Arena Arena;
 typedef struct Node Node;
 
@@ -87,40 +95,37 @@ typedef struct List {
 List list_init(uint64_t capacity, uint64_t unit_size);
 
 // Insert data at the front of list
-// returns 1 on failure
-int list_insert_at_front(List* list, void* content);
+ListErr list_insert_at_front(List* list, void* content);
 
 // Insert data at the rear of list.
-// returns 1 on failure
-int list_insert_at_rear(List* list, void* content);
+ListErr list_insert_at_rear(List* list, void* content);
 
 // Insert data at a any valid index position in the list.
 // Nodes can be accessed from front when pos = 0, 1, 2, ...
 // Nodes can be accessed from rear when pos = -1, -2, -3, ...
-// returns 1 on failure
-int list_insert_at(List* list, int64_t position, void* content);
+ListErr list_insert_at(List* list, int64_t position, void* content);
 
 // Remove front node and return its content field.
-// Returns NULL on error
+// Return NULL on error
 void* list_remove_from_front(List* list);
 
 // Remove rear node and return its content field.
-// Returns NULL on error.
+// Return NULL on error.
 void* list_remove_from_rear(List* list);
 
 // Remove any Node at desired pos and returns its content.
 // Nodes can be accessed from front when pos = 0, 1, 2, ... indeces and
 // from the rear when pos = -1, -2, -3, ...
-// Returns NULL on error.
+// Return NULL on error.
 void* list_remove_from(List *list, int64_t position);
 
 // Modify the content of node at given position.
 // Nodes can be accessed from front when pos = 0, 1, 2,... indeces and
 // from the rear when pos = -1, -2, -3,...
-void list_modify_at(List* list, int64_t pos, void* content);
+ListErr list_modify_at(List* list, int64_t pos, void* content);
 
 // Returns the content at required index "pos" without modifying the list.
-// Returns NULL on failures.
+// Returns NULL on failure.
 void* list_peekat(const List* list, int64_t pos);
 
 // frees the arena allocated for linked list.

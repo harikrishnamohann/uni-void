@@ -21,12 +21,11 @@ Reference materials: https://m.youtube.com/watch?v=ZisNZcQn6fo&pp=ygULYXJlbmEgYW
 #include <stdint.h>
 #include "../..//include/utils.h"
 
-// Prototype of Arena
 typedef struct Arena {
-  uint64_t capacity; // holds total size of chunk of memory.
+  uint64_t capacity; // holds total capacity of the chunk.
   uint64_t buf_size; // total used size in the chunk.
   uint8_t *arena_buf; // stores the actual chunk.
-  struct Arena *next_node; // to face arena overflow.
+  struct Arena *next_arena; // to face arena overflow.
 } Arena;
 
 // initializes the arena chunk with a capacity of 
@@ -36,16 +35,23 @@ Arena *arena_init(uint64_t capacity) {
       DEBUG_PRINT("err! arena_init(): Capacity of arena must be greater than 0.\n");
       return NULL;
     }
-    uint8_t *new = malloc(sizeof(uint8_t) * capacity);
-    if (new == NULL) {
+
+    uint8_t *new_buffer = malloc(sizeof(uint8_t) * capacity);
+    if (new_buffer == NULL) {
       DEBUG_PRINT("err! arena_init(): Failed to allocate memory for new buffer.\n");
       return NULL;
     }
+
     Arena *arena = malloc(sizeof(Arena));
+    if (arena == NULL) {
+      DEBUG_PRINT("err! arena_init(): Failed to allocate memory for arena.\n");
+      return NULL;
+    }
+
     arena->capacity = capacity;
     arena->buf_size = 0;
-    arena->arena_buf = new;
-    arena->next_node = NULL;
+    arena->arena_buf = new_buffer;
+    arena->next_arena = NULL;
   return arena;
 }
 
@@ -58,15 +64,14 @@ void *arena_alloc(Arena *arena, uint64_t size) {
   }
   Arena *current = arena;
   // if the requsted size does not fit inside the current instance,
-  // create a new arena instance and link it to next_node.
-  // it's a single linked list.
+  // create a new arena instance and traverse into it.
   while(current->buf_size + size > current->capacity) {
-    if(current->next_node == NULL) {
-      current->next_node = arena_init(current->capacity);
+    if(current->next_arena == NULL) {
+      current->next_arena = arena_init(current->capacity);
     }
-    current = current->next_node;
+    current = current->next_arena;
   }
-  // current->arena_buf => points to the start of arena_buf
+  // current->arena_buf points to the start of arena_buf
   // buf_start_address + current_allocated_size gives 
   // an address to next unused space.
   void *mem_buf = current->arena_buf + current->buf_size;
@@ -78,12 +83,12 @@ void *arena_alloc(Arena *arena, uint64_t size) {
 void arena_visualize(const Arena *arena) {
   const Arena *current = arena;
   while(current != NULL) {
-    printf("capacity: %lu, size: %lu, buf: %p, nxt: %p\n",
+    printf("capacity: %lu, used size: %lu, buf: %p, nxt: %p\n",
            current->capacity,
            current->buf_size,
            current->arena_buf,
-           current->next_node);
-    current = current->next_node;
+           current->next_arena);
+    current = current->next_arena;
   }
 }
 
@@ -93,7 +98,7 @@ void arena_reset(Arena *arena) {
   Arena *current = arena;
   while(current != NULL) {
     current->buf_size = 0;
-    current = current->next_node;
+    current = current->next_arena;
   }
 }
 
@@ -105,7 +110,7 @@ void arena_free(Arena *arena) {
     free(current->arena_buf);
     current->buf_size = 0;
     current->capacity = 0;
-    next = current->next_node;
+    next = current->next_arena;
     free(current);
     current = next;
   }

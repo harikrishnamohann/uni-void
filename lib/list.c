@@ -22,6 +22,14 @@ Started on: 20-10-2024
 #include "../include/arena.h"
 #include "../include/utils.h"
 
+typedef enum ListErr {
+  LIST_SUCCESS = 0,
+  LIST_ALLOC_ERR = -1,
+  LIST_FULL_ERR = 1,
+  LIST_EMPTY_ERR = 2,
+  LIST_INDEX_OUT_OF_BOUNDS_ERR = 3,
+} ListErr;
+
 typedef struct Node {
   void* content;
   struct Node* next;
@@ -45,6 +53,9 @@ static Node* node_init(Arena **arena, void* content, uint64_t size) {
     return NULL;
   }
   node->content = arena_alloc(*arena, size);
+  if (node->content == NULL) {
+    return NULL;
+  }
   memcpy(node->content, content, size);
   node->next = NULL;
   node->prev = NULL;
@@ -160,11 +171,11 @@ uint64_t list_length(const List *restrict list) {
 
 // Insert data at the front of list
 // returns 1 on failure
-int list_insert_at_front(List* list, void* content) {
+ListErr list_insert_at_front(List* list, void* content) {
   if (list->capacity == 0 || list->len < list->capacity) {
     Node* newNode = node_init(&list->arena, content, list->unit_size);
     if (newNode == NULL) {
-      return 1;
+      return LIST_ALLOC_ERR;
     }
     if (list->len == 0) {
       list->head = newNode;
@@ -178,18 +189,18 @@ int list_insert_at_front(List* list, void* content) {
     }
   } else {
     DEBUG_PRINT("err: list_insert_at_front(): Insertion is not possible, list is full.\n");
-    return 1;
+    return LIST_FULL_ERR;
   }
-  return 0;
+  return LIST_SUCCESS;
 }
 
 // Insert data at the rear of list.
 // returns 1 on failure
-int list_insert_at_rear(List* list, void* content) {
+ListErr list_insert_at_rear(List* list, void* content) {
   if (list->capacity == 0 || list->len < list->capacity) {
     Node* newNode = node_init(&list->arena, content, list->unit_size);
     if (newNode == NULL) {
-      return 1;
+      return LIST_ALLOC_ERR;
     }
     if (list->len == 0) {
       list->head = newNode;
@@ -203,20 +214,20 @@ int list_insert_at_rear(List* list, void* content) {
     }
   } else {
     DEBUG_PRINT("err: list_insert_at_front(): Insertion is not possible, list is full.\n");
-    return 1;
+    return LIST_FULL_ERR;
   }
-  return 0;
+  return LIST_SUCCESS;
 }
 
 // Insert data at a any valid index position in the list.
 // Nodes can be accessed from front when pos = 0, 1, 2, ...
 // Nodes can be accessed from rear when pos = -1, -2, -3, ...
 // returns 1 on failure
-int list_insert_at(List* list, int64_t position, void* content) {
+ListErr list_insert_at(List* list, int64_t position, void* content) {
   if (list->capacity == 0 || list->len < list->capacity) {
     Node *newNode = node_init(&list->arena, content, list->unit_size);
     if (newNode == NULL) {
-      return 1;
+      return LIST_ALLOC_ERR;
     }
 
     Node *targetNode = NULL;
@@ -229,7 +240,7 @@ int list_insert_at(List* list, int64_t position, void* content) {
         position = list->len + position;
         if(position < 0) {
           DEBUG_PRINT("err: ll_insert_at(): pos: %lu is out of bound 0.\n", position);
-          return 1;
+          return LIST_INDEX_OUT_OF_BOUNDS_ERR;
         }
         if(position == -1) {
           list_insert_at_front(list, content);
@@ -237,28 +248,28 @@ int list_insert_at(List* list, int64_t position, void* content) {
           targetNode = get_node_using_index(list, position);
           if (targetNode == NULL) {
             DEBUG_PRINT("err: ll_insert_a(): pos: %lu is out of bound 1.\n", position);
-            return 1;
+            return LIST_INDEX_OUT_OF_BOUNDS_ERR;
           }
           insert_after_target_node(list, targetNode, newNode);
         } 
       } else {
         if(position > list->len) {
           DEBUG_PRINT("err: ll_insert_at_pos(): pos: %lu is out of bound 2.\n", position);
-          return 1;
+          return LIST_INDEX_OUT_OF_BOUNDS_ERR;
         }
         targetNode = get_node_using_index(list, position);
         if (targetNode == NULL) {
           DEBUG_PRINT("err: ll_insert_at_pos(): pos: %lu is out of bound 3.\n", position);
-          return 1;
+          return LIST_INDEX_OUT_OF_BOUNDS_ERR;
         }
         insert_before_target_node(list, targetNode, newNode);
       }
     }
   } else {
     DEBUG_PRINT("err: list_insert_at_front(): Insertion is not possible, list is full.\n");
-    return 1;
+    return LIST_FULL_ERR;
   }
-  return 0;
+  return LIST_SUCCESS;
 }
 
 // Remove front node and return its data field.
@@ -305,29 +316,30 @@ void* list_remove_from(List *list, int64_t position) {
 // Modify the content of node at given position.
 // Nodes can be accessed from front when pos = 0, 1, 2,... indeces and
 // from the rear when pos = -1, -2, -3,...
-void list_modify_at(List *list, int64_t pos, void* content) {
+ListErr list_modify_at(List *list, int64_t pos, void* content) {
   if(list->len == 0) {
     DEBUG_PRINT("err: ll_modify_node_at_pos(): Can't modify element from an empty list.\n");
-    return;
+    return LIST_EMPTY_ERR;
   }
   if (pos < 0) {
     pos = list->len + pos;
   }
   if(pos > list->len || pos < 0) {
     DEBUG_PRINT("err: ll_modify_node_at_pos(): pos: %lu is an invalid index.\n", pos);
-    return;
+    return LIST_INDEX_OUT_OF_BOUNDS_ERR;
   }
   Node* targetNode = get_node_using_index(list, pos);
   if (targetNode == NULL) {
     DEBUG_PRINT("err: ll_modify_node_at_pos(): pos is out of bound.\n");
-    return;
+    return LIST_INDEX_OUT_OF_BOUNDS_ERR;
   }
   // targetNode->content = content;
   memcpy(targetNode->content, content, list->unit_size);
   if (targetNode->content == NULL) {
     DEBUG_PRINT("err: ll_modify_node_at_pos(): Memory allocation failed.\n");
-    return;
+    return LIST_ALLOC_ERR;
   }
+  return LIST_SUCCESS;
 }
 
 // Returns the content at required index "pos" without modifying the list.

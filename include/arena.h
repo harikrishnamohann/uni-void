@@ -12,7 +12,9 @@
 #define ARENA_1024 1024
 
 // Prototype of Arena
+// typedef struct Arena Arena;
 typedef struct Arena Arena;
+
 
 // initializes the arena chunk with a capacity of 
 // ARENA_[8,16,32,..,2048] or any custom integer greater than 0.
