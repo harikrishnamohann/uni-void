@@ -27,10 +27,24 @@ void str_free(String* s);
 // Returns a new String containing the slice; caller must free it
 String str_slice(const String str, uint64_t start, uint64_t end);
 
-// Replaces all occurrences of `key_to_rpl` with `value_to_repl` in `str`
+// Returns number of occurances of key in str if key is in str; 0 otherwise.
+uint64_t str_contains(const String str, const String key);
+
+// Replaces all occurrences of `key` with `value` in `str`
 // Modifies `str` in place, resizing it as necessary; caller must free result
 // Returns 0 on success, -1 on failure and 2 if key is not in given str.
-int8_t str_replace_all(String* str, const char* key_to_rpl, const char* value_to_repl);
+int8_t str_replace_all(String* str, const String key, const String value);
+
+/*
+    Replaces first occurre of `key` with `value` in `str`
+    Modifies `str` in place, resizing it as necessary; caller must free result
+    It uses a static variable to keep track of the position.
+    So, calling this function with a different key will reset 
+    its memory. Point is, it will not work as expected in a
+    multi-threaded context.
+    Returns 0 on success, -1 on failure and 2 if key is not in given str.
+*/
+int8_t str_replace_next(String* str, const String key, const String value);
 
 // frees the memory allocated for String.
 void str_free(String* string);
