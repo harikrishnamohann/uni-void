@@ -11,7 +11,7 @@ typedef struct String {
 } String;
 
 String str_init(char* str) {
-  return  (str != NULL) ? (String){str, strlen(str)} : (String){NULL, 0};
+  return (str != NULL) ? (String){str, strlen(str)} : (String){NULL, 0};
 }
 
 char* str_str(const String s) {
@@ -91,50 +91,49 @@ int8_t str_replace_all(String* str, const String key, const String value) {
 }
 
 /*
-Returns the starting index of next occrance of key in str.
-It uses a static variable to keep track of the position.
+This fn uses a static variable to keep track of the position.
 So, calling this function with a different key will reset 
-its memory. Point is, it will not work as expected in a
-multi-threaded context.
-Returns starting index of key in str; -1 if key is not in str.
+its memory. Point is, it might not work as expected when calls
+are concurrent.
 */
-static int64_t str_has_next(const String str, const String current_key) {
-  size_t k, j;
-  static String key = {NULL, 0};
-  static size_t next_pos = 0;
-  if (str_len(key) == 0) {
-    key = current_key;
-  } else if (strcmp(str_str(key), str_str(current_key)) != 0) {
-    key = current_key;
-    next_pos = 0;
-  } 
-  for (size_t i = next_pos; i < str_len(str); i++) {
-    for (j = 0, k = i; j < str_len(key) && k < str_len(str) && str.str[k] == key.str[j]; k++, j++);
-    if (j == str_len(current_key)) {
-      next_pos = k;
-      return i;
-    }
-  }
-  return -1;
-}
 
 int8_t str_replace_next(String* str, const String key, const String value) {
-  int64_t replace_pos = str_has_next(*str, key);
-  String buf = str_init(NULL);
-  if (replace_pos >= 0) {
-    buf.str = (char*)malloc(str_len(*str) - str_len(key) + str_len(value));
+  int64_t start_pos = -1;
+
+  static String prev_key = {NULL, 0};
+  static size_t prev_pos = 0;
+  if (prev_key.length == 0) {
+    prev_key = key;
+  } else if (strcmp(prev_key.str, key.str) != 0) {
+    prev_key = key;
+    prev_pos = 0;
+  } 
+
+  size_t k, j;
+  for (size_t i = prev_pos; i < str->length; i++) {
+    for (j = 0, k = i; j < prev_key.length && k < str->length && str->str[k] == prev_key.str[j]; k++, j++);
+    if (j == prev_key.length) {
+      prev_pos = i + value.length;
+      start_pos = i;
+      break;
+    }
+  }
+
+  String buf = {NULL, 0};
+  if (start_pos != -1) {
+    buf.str = (char*)malloc(str->length - key.length + value.length + 1);
     if (buf.str == NULL) {
       DEBUG_PRINT("err! str_replace_next(): failed to allocate memory for buf.str.\n");
       return -1;
     }
 
-    for (size_t i = 0; i < replace_pos; i++) {
+    for (size_t i = 0; i < start_pos; i++) {
       buf.str[buf.length++] = str->str[i];
     }
-    for (size_t i = 0; i < str_len(value); i++) {
+    for (size_t i = 0; i < value.length; i++) {
       buf.str[buf.length++] = value.str[i];
     }
-    for (size_t i = buf.length - str_len(value) + str_len(key); i < str_len(*str); i++) {
+    for (size_t i = buf.length - value.length + key.length; i < str->length; i++) {
       buf.str[buf.length++] = str->str[i];
     }
 

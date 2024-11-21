@@ -1,3 +1,13 @@
+/*
+This is my implementation of String type in c.
+It has various utility functions to handle various operations.
+
+## About ##
+Author: Harikrishna Mohan
+Contact: harikrishnamohan@proton.me
+Started on: 11-11-2024
+*/
+
 #ifndef __STRINGS_H__
 #define __STRINGS_H__
 
@@ -40,8 +50,8 @@ int8_t str_replace_all(String* str, const String key, const String value);
     Modifies `str` in place, resizing it as necessary; caller must free result
     It uses a static variable to keep track of the position.
     So, calling this function with a different key will reset 
-    its memory. Point is, it will not work as expected in a
-    multi-threaded context.
+    its memory. Point is, it might not work as expected when calls
+    are concurrent.
     Returns 0 on success, -1 on failure and 2 if key is not in given str.
 */
 int8_t str_replace_next(String* str, const String key, const String value);
