@@ -4,8 +4,10 @@ OBJ_DIR = ./obj
 
 all: debug
 
+run: debug
+	./target/debug
+
 debug: arena list utils strings
-### write the compilation commands here ###
 	@ $(CC) $(CFLAGS) $(OBJ_DIR)/list.o $(OBJ_DIR)/arena.o $(OBJ_DIR)/strings.o src/main.c $(OBJ_DIR)/utils.o -o target/debug
 
 list:
