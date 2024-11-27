@@ -53,6 +53,12 @@ int8_t str_replace_all(String* str, const String key, const String value);
     // value: String to replace.
 int64_t str_replace_next(String* str, uint64_t look_from, const String key, const String value);
 
+// Returns a composed string, ie; works like sprintf(),
+// but returns the output as a string type.
+// Returns an empty string on error
+// possible errors are format errors and memory allocation failure.
+String str_compose(const char *format, ...);
+
 // frees the memory allocated for String.
 void str_free(String* string);
 
