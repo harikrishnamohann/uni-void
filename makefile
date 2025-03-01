@@ -1,27 +1,16 @@
 CC = gcc
-CFLAGS = -g
-OBJ_DIR = ./obj
+CFLAGS = -lncurses
+DEBUG = debug1
 
-all: debug
-
-run: debug
-	./target/debug
-
-debug: check arena list utils strings
-	@ $(CC) $(CFLAGS) $(OBJ_DIR)/list.o $(OBJ_DIR)/arena.o $(OBJ_DIR)/strings.o src/main.c $(OBJ_DIR)/utils.o -o target/debug
-
-list:
-	@ $(CC) -c ./lib/list.c -o $(OBJ_DIR)/list.o $(CFLAGS)
+all: arena
+	@ $(CC) src/main.c obj/arena.o -o target/$(DEBUG) $(CFLAGS)
+run: arena
+	@ $(CC) src/main.c obj/arena.o -o target/$(DEBUG) $(CFLAGS)
+	@ ./target/$(DEBUG)
 
 arena:
-	@ $(CC) -c ./lib/arena_allocator/arena.c -o $(OBJ_DIR)/arena.o $(CFLAGS)
-
-utils:
-	@ $(CC) -c ./lib/utils.c -o $(OBJ_DIR)/utils.o $(CFLAGS)
-
-strings:
-	@ $(CC) -c ./lib/strings.c -o $(OBJ_DIR)/strings.o $(CFLAGS)
-
+	@ $(CC) -c lib/arena_allocator/arena.c  -o obj/arena.o
+	
 check: ./obj ./target
 	
 ./obj:
@@ -33,5 +22,5 @@ check: ./obj ./target
 	mkdir -p ./target
 
 clean:
-	@ rm $(OBJ_DIR)/* target/debug
+	@ rm obj/* target/$(DEBUG)
 
