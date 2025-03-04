@@ -4,3 +4,5 @@
 - a menu for choosing difficulty
 - ~~detect when game is completed~~
 - ~~status line for showing some informations such as counter, difficulty etc~~
+- save highscore
+- display leaderboard on game completion

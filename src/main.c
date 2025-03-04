@@ -109,8 +109,6 @@ struct gmatrix gmatrix_init(Arena* arena, int order) {
   return gmat;
 }
 
-void debug_print_matrix(struct gmatrix mat);
-
 void print_status_line(size_t count, direction key, const char* msg) {
   int x, y, current_x, current_y;
   getyx(stdscr, current_x, current_y);
@@ -133,8 +131,10 @@ void print_status_line(size_t count, direction key, const char* msg) {
   move(current_x, current_y);
 }
 
+void debug_print_matrix(struct gmatrix mat);
+
 int main(int argc, char* argv[]) {
-  int difficulty = 4;
+  int difficulty = 3;
   srand(time(NULL));
   Arena *arena = arena_init(ARENA_128);
   struct gmatrix gmat = gmatrix_init(arena, difficulty);
@@ -154,7 +154,6 @@ int main(int argc, char* argv[]) {
     moves += mov_zero(&gmat, ch);
     completed = render_matrix(gmat);
     if (completed) {
-    print_status_line(moves, ch, msg);
       msg = "You Won! press 'q' to quit!";
       ch = 'q';
     }
