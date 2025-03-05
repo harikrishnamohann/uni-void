@@ -6,4 +6,5 @@
 - ~~status line for showing some informations such as counter, difficulty etc~~
 - save highscore
 - display leaderboard on game completion
-- undo redo mechanism
+- ~~undo redo mechanism~~
+- help window
