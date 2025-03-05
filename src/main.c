@@ -4,14 +4,20 @@
 #include <time.h>
 #include "../include/arena.h"
 
+#define STK_SIZE 50
+
 typedef enum {
   key_invalid,
-  key_up,
-  key_down,
-  key_left,
-  key_right,
-  key_return,
-} Direction;
+  key_up = 1,
+  key_down = -1,
+  key_left = 2,
+  key_right = -2,
+  key_return = 3,
+  key_undo,
+  key_redo,
+  key_exit,
+  key_resize,
+} Key;
 
 typedef enum {
   mode_invalid,
@@ -26,10 +32,31 @@ struct gmatrix {
   uint16_t curs_x;
   uint16_t curs_y;
   uint16_t order;
+  Key undo_stack[STK_SIZE];
+  Key redo_stack[STK_SIZE];
+  int16_t utop;
+  int16_t rtop;
   int** mat;
 };
 
 static void swap(int *x, int *y) { *x = *x ^ *y; *y = *x ^ *y; *x = *x ^ *y; }
+
+void push_key(Key stk[], int16_t *top, Key key) {
+  if (*top == STK_SIZE - 1) { // stack full
+    for (int i = 1; i < STK_SIZE; i++) {
+      stk[i - 1] = stk[i];
+    }
+    (*top)--;
+  }  
+  stk[++(*top)] = key;
+}
+
+Key pop_key(Key stk[], int16_t *top) {
+  if (*top == -1) {
+    return key_invalid;
+  }
+  return stk[(*top)--];
+}
 
 // return 1 if elements are sorted.
 int update_matrix_view(const struct gmatrix gmat) {
@@ -58,33 +85,41 @@ int update_matrix_view(const struct gmatrix gmat) {
   return (in_place == n_elements - 1);
 }
 
-Direction decode_dirn(int ch) {
+Key decode_key(int ch) {
   switch (ch) {
     case 's' : case 'j' : case KEY_DOWN : return key_down;
     case 'w' : case 'k' : case KEY_UP : return key_up;
     case 'd' : case 'l' : case KEY_RIGHT : return key_right;
     case 'a' : case 'h' : case KEY_LEFT : return key_left;
     case KEY_ENTER : case '\n' :  return key_return;
+    case 'u' : return key_undo;
+    case 'r' : return key_redo;
+    case 'q' : return key_exit;
+    case KEY_RESIZE : return key_resize;
   }
   return key_invalid;
 }
 
-int mov_zero(struct gmatrix* gmatrix, int ch) {
-  int x = gmatrix->curs_x, y = gmatrix->curs_y;
-  switch (decode_dirn(ch)) {
+int mov_zero(struct gmatrix* gmat, Key key, bool undoing) {
+  int x = gmat->curs_x, y = gmat->curs_y;
+  switch (key) {
     case key_up :
       if (x == 0) return 0; else x--; break;
     case key_down :
-      if (x == gmatrix->order - 1) return 0; else x++; break;
+      if (x == gmat->order - 1) return 0; else x++; break;
     case key_right :
-      if (y == gmatrix->order - 1) return 0; else y++; break;
+      if (y == gmat->order - 1) return 0; else y++; break;
     case key_left :
       if (y == 0) return 0; else y--; break;
     default : return 0;
   }
-  swap(&(gmatrix->mat[x][y]), &(gmatrix->mat[gmatrix->curs_x][gmatrix->curs_y]));
-  gmatrix->curs_x = x;
-  gmatrix->curs_y = y;
+
+  if (!undoing) {
+    push_key(gmat->undo_stack, &gmat->utop, key * -1);
+  }
+  swap(&(gmat->mat[x][y]), &(gmat->mat[gmat->curs_x][gmat->curs_y]));
+  gmat->curs_x = x;
+  gmat->curs_y = y;
   return 1;
 }
 
@@ -114,7 +149,9 @@ struct gmatrix gmatrix_init(Arena* arena, int order) {
     .order = order,
     .curs_x = -1,
     .curs_y = -1,
-    .mat = arena_alloc(arena, sizeof(int*) * order)
+    .mat = arena_alloc(arena, sizeof(int*) * order),
+    .utop = -1,
+    .rtop = -1,
   };
   for (int i = 0; i < order; i++) {
     gmat.mat[i] = arena_alloc(arena, sizeof(int) * order);
@@ -123,7 +160,7 @@ struct gmatrix gmatrix_init(Arena* arena, int order) {
   return gmat;
 }
 
-void print_status_line(size_t count, Direction key, const char* msg) {
+void print_status_line(size_t count, Key key, const char* msg) {
   int x, y, current_x, current_y;
   getyx(stdscr, current_x, current_y);
   getmaxyx(stdscr, y, x);
@@ -133,7 +170,7 @@ void print_status_line(size_t count, Direction key, const char* msg) {
   mvprintw(y - 1, msg_start, "%s", msg);
 
   move(y - 1, x - 2);
-  switch(decode_dirn(key)) {
+  switch(key) {
     case key_up: printw("U"); break;
     case key_down: printw("D"); break;
     case key_left: printw("L"); break;
@@ -145,7 +182,7 @@ void print_status_line(size_t count, Direction key, const char* msg) {
   move(current_x, current_y);
 }
 
-void show_menu(Direction key, uint *highlight) {
+void show_menu(Key key, uint *highlight) {
   int height, width, x, y;
   char* menu_items[] = {
     "  easy  ",
@@ -209,9 +246,9 @@ int input_difficulty() {
 int get_difficulty() {
   uint highlight = 0;
   int ch;
-  Direction key;
+  Key key;
   do {
-    key = decode_dirn(ch);
+    key = decode_key(ch);
     if (key == key_return) {
       if (highlight == mode_exit) {
         break;
@@ -245,23 +282,38 @@ int main(int argc, char* argv[]) {
   Arena *arena = arena_init(ARENA_128);
   struct gmatrix gmat = gmatrix_init(arena, difficulty);
 
-  int ch = 0, moves = 0, completed = 0;
+  int moves = 0, completed = 0;
+  Key key;
   char *msg = "sort the matrix";
   update_matrix_view(gmat);
-  print_status_line(moves, ch, msg);
-  while (ch != 'q') {
-    ch = getch();
-    moves += mov_zero(&gmat, ch);
+  print_status_line(moves, key, msg);
+
+  bool undo;
+  while (key != key_exit) {
+    undo = false;
+    key = decode_key(getch());
+
+    if (key == key_invalid || key == key_exit) continue;
+    else if(key == key_undo) {
+      if ((key = pop_key(gmat.undo_stack, &gmat.utop)) == key_invalid) continue;
+      push_key(gmat.redo_stack, &gmat.rtop, key * -1);
+      undo = true;
+    } else if (key == key_redo) {
+      if ((key = pop_key(gmat.redo_stack, &gmat.rtop)) == key_invalid) continue;
+      push_key(gmat.undo_stack, &gmat.utop, key * -1);
+      undo = true;
+    }
+    moves += mov_zero(&gmat, key, undo);
     completed = update_matrix_view(gmat);
     if (completed) {
       msg = "You Won! press 'q' to quit!";
-      ch = 'q';
+      key = key_exit;
     }
-    print_status_line(moves, ch, msg);
+    print_status_line(moves, key, msg);
     refresh();
   } 
 
-  if (!completed) print_status_line(moves, ch, "interrupted. press 'q' to quit");
+  if (!completed) print_status_line(moves, key, "interrupted. press 'q' to quit");
   while(getch() != 'q');
 
   endwin();
