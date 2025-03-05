@@ -28,6 +28,12 @@ typedef enum {
   mode_exit = 4,
 } Mode;
 
+struct status_line {
+  size_t moves;
+  char *msg;
+  Key key;
+};
+
 struct gmatrix {
   uint16_t curs_x;
   uint16_t curs_y;
@@ -59,7 +65,7 @@ Key pop_key(Key stk[], int16_t *top) {
 }
 
 // return 1 if elements are sorted.
-int update_matrix_view(const struct gmatrix gmat) {
+bool update_matrix_view(const struct gmatrix gmat) {
   int height, width, count = 0, in_place = 0, n_elements = gmat.order * gmat.order;
   getmaxyx(stdscr, height, width);
   erase();
@@ -100,27 +106,28 @@ Key decode_key(int ch) {
   return key_invalid;
 }
 
-int mov_zero(struct gmatrix* gmat, Key key, bool undoing) {
+void mov_zero(struct gmatrix* gmat, struct status_line *sl, Key key, bool undoing) {
   int x = gmat->curs_x, y = gmat->curs_y;
   switch (key) {
     case key_up :
-      if (x == 0) return 0; else x--; break;
+      if (x == 0) return; else x--; break;
     case key_down :
-      if (x == gmat->order - 1) return 0; else x++; break;
+      if (x == gmat->order - 1) return; else x++; break;
     case key_right :
-      if (y == gmat->order - 1) return 0; else y++; break;
+      if (y == gmat->order - 1) return; else y++; break;
     case key_left :
-      if (y == 0) return 0; else y--; break;
-    default : return 0;
+      if (y == 0) return; else y--; break;
+    default : return;
   }
 
   if (!undoing) {
     push_key(gmat->undo_stack, &gmat->utop, key * -1);
+    sl->moves++;
+    sl->key = key;
   }
   swap(&(gmat->mat[x][y]), &(gmat->mat[gmat->curs_x][gmat->curs_y]));
   gmat->curs_x = x;
   gmat->curs_y = y;
-  return 1;
 }
 
 void shuffle_matrix(struct gmatrix* gmatrix) {
@@ -160,17 +167,17 @@ struct gmatrix gmatrix_init(Arena* arena, int order) {
   return gmat;
 }
 
-void print_status_line(size_t count, Key key, const char* msg) {
+void print_status_line(struct status_line data) {
   int x, y, current_x, current_y;
   getyx(stdscr, current_x, current_y);
   getmaxyx(stdscr, y, x);
-  int msg_start = (x - strlen(msg)) / 2;
+  int msg_start = (x - strlen(data.msg)) / 2;
 
-  mvprintw(y - 1, 1, " moves: %2zu", count);
-  mvprintw(y - 1, msg_start, "%s", msg);
+  mvprintw(y - 1, 1, " moves: %2zu", data.moves);
+  mvprintw(y - 1, msg_start, "%s", data.msg);
 
   move(y - 1, x - 2);
-  switch(key) {
+  switch(data.key) {
     case key_up: printw("U"); break;
     case key_down: printw("D"); break;
     case key_left: printw("L"); break;
@@ -200,16 +207,11 @@ void show_menu(Key key, uint *highlight) {
 
   getmaxyx(stdscr, height, width);
   x = (width - strlen("Welcome to uni-void!")) / 2;
-  y = (height - (3 + menu_size)) / 2;
+  y = (height - (2 + menu_size)) / 2;
 
-  erase();
   attron(A_BOLD );
   mvprintw(y++, x, "WELCOME TO UNI-VOID!");
   attroff(A_BOLD);
-  y++;
-  attron(A_UNDERLINE);
-  mvprintw(y++, x, "Choose a difficulty");
-  attroff(A_UNDERLINE);
 
   for (size_t i = 0; i < menu_size; i++) {
     x = (width - strlen(menu_items[i])) / 2;
@@ -224,9 +226,9 @@ void show_menu(Key key, uint *highlight) {
 }
 
 int input_difficulty() {
-  erase();
   char difficulty[10];
   int x, y, height, width;
+  erase();
   getmaxyx(stdscr, height, width);
   char* query = "Enter order of square matrix: ";
   x = (width - strlen(query)) / 2;
@@ -276,17 +278,24 @@ int main(int argc, char* argv[]) {
   keypad(stdscr, TRUE);
   cbreak();
 
+  struct status_line status = {
+    .moves = 0,
+    .key = 0,
+    .msg = "choose a difficulty"
+  };
 
+  print_status_line(status);
   difficulty = get_difficulty();
 
   Arena *arena = arena_init(ARENA_128);
   struct gmatrix gmat = gmatrix_init(arena, difficulty);
 
-  int moves = 0, completed = 0;
+  bool completed = false;
   Key key;
-  char *msg = "sort the matrix";
+
+  status.msg = "sort the matrix!";
   update_matrix_view(gmat);
-  print_status_line(moves, key, msg);
+  print_status_line(status);
 
   bool undo;
   while (key != key_exit) {
@@ -303,17 +312,21 @@ int main(int argc, char* argv[]) {
       push_key(gmat.undo_stack, &gmat.utop, key * -1);
       undo = true;
     }
-    moves += mov_zero(&gmat, key, undo);
+    mov_zero(&gmat, &status, key, undo);
     completed = update_matrix_view(gmat);
     if (completed) {
-      msg = "You Won! press 'q' to quit!";
+      status.msg = "You Won! press 'q' to quit!";
       key = key_exit;
     }
-    print_status_line(moves, key, msg);
+    print_status_line(status);
     refresh();
   } 
 
-  if (!completed) print_status_line(moves, key, "interrupted. press 'q' to quit");
+  if (!completed) {
+    status.msg = "interrupted. press 'q' to quit";
+    print_status_line(status);
+    refresh();
+  }
   while(getch() != 'q');
 
   endwin();
