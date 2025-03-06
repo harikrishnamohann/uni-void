@@ -7,4 +7,4 @@
 - save highscore
 - display leaderboard on game completion
 - ~~undo redo mechanism~~
-- help window
+- ~~help window~~
