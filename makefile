@@ -8,7 +8,7 @@ run: arena
 	@ $(CC) src/main.c obj/arena.o -o target/$(DEBUG) $(CFLAGS)
 	@ ./target/$(DEBUG)
 
-arena:
+arena: check
 	@ $(CC) -c lib/arena_allocator/arena.c  -o obj/arena.o
 	
 check: ./obj ./target
