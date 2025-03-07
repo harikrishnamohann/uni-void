@@ -2,11 +2,15 @@ CC = gcc
 CFLAGS = -lncurses
 DEBUG = debug
 
-.PHONY: all run clean
+check: obj target target/$(DEBUG)
 
-# Target binary
+# Run target
+run: obj target target/$(DEBUG)
+	./target/$(DEBUG)
+
 target/$(DEBUG): obj/main.o obj/arena.o obj/keymaps.o obj/save_and_load.o obj/utils.o
 	$(CC) $^ -o $@ $(CFLAGS)
+
 
 # Object files
 obj/main.o: src/main.c
@@ -23,10 +27,6 @@ obj/utils.o: src/utils.c
 
 obj/arena.o: lib/arena.c
 	$(CC) -c $< -o $@
-
-# Run target
-run: target/$(DEBUG)
-	./target/$(DEBUG)
 
 # Ensure directories exist
 obj:
