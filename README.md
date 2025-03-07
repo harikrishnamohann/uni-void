@@ -9,3 +9,4 @@
 - ~~save and load functionality~~
 - display leaderboard on game completion
 - sound effects
+- add a mode with limited number of moves

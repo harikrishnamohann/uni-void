@@ -19,7 +19,14 @@ Reference materials: https://m.youtube.com/watch?v=ZisNZcQn6fo&pp=ygULYXJlbmEgYW
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "../..//include/utils.h"
+
+// to toggle error messages.
+#define DEBUG 1
+
+#ifdef DEBUG
+#define DEBUG_PRINT(fmt, ...) \
+  do { if (DEBUG) fprintf(stderr, fmt, ##__VA_ARGS__); } while (0)
+#endif
 
 typedef struct Arena {
   uint64_t capacity; // holds total capacity of the chunk.

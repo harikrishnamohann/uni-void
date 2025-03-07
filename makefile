@@ -1,26 +1,42 @@
 CC = gcc
 CFLAGS = -lncurses
-DEBUG = debug1
+DEBUG = debug
 
-all: arena
-	@ $(CC) src/main.c obj/arena.o -o target/$(DEBUG) $(CFLAGS)
-run: arena
-	@ $(CC) src/main.c obj/arena.o -o target/$(DEBUG) $(CFLAGS)
-	@ ./target/$(DEBUG)
+.PHONY: all run clean
 
-arena: check
-	@ $(CC) -c lib/arena_allocator/arena.c  -o obj/arena.o
-	
-check: ./obj ./target
-	
-./obj:
+# Target binary
+target/$(DEBUG): obj/main.o obj/arena.o obj/keymaps.o obj/save_and_load.o obj/utils.o
+	$(CC) $^ -o $@ $(CFLAGS)
+
+# Object files
+obj/main.o: src/main.c
+	$(CC) -c $< -o $@
+
+obj/keymaps.o: src/keymaps.c
+	$(CC) -c $< -o $@
+
+obj/save_and_load.o: src/save_and_load.c
+	$(CC) -c $< -o $@
+
+obj/utils.o: src/utils.c
+	$(CC) -c $< -o $@
+
+obj/arena.o: lib/arena.c
+	$(CC) -c $< -o $@
+
+# Run target
+run: target/$(DEBUG)
+	./target/$(DEBUG)
+
+# Ensure directories exist
+obj:
 	@echo "Creating directory ./obj"
 	mkdir -p ./obj
 
-./target:
-	@echo "Creating directroy ./target"
+target:
+	@echo "Creating directory ./target"
 	mkdir -p ./target
 
+# Clean target
 clean:
-	@ rm obj/* target/$(DEBUG)
-
+	rm -rf obj target/$(DEBUG)
