@@ -5,6 +5,7 @@
 - ~~status line for showing some informations such as counter, difficulty etc~~
 - ~~undo redo mechanism~~
 - ~~help window~~
-- save and load functionality
+- ~~ensure the solvability of puzzle~~
+- ~~save and load functionality~~
 - display leaderboard on game completion
 - sound effects

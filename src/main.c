@@ -1,12 +1,14 @@
 #include <ncurses.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include "../include/arena.h"
 
-#define STK_SIZE 50
-#define CENTER_Y(height) (((LINES - (height)) / 2))
-#define CENTER_X(width) (((COLS - (width)) / 2))
+#define STK_SIZE 60
+#define CENTER_Y(offset) (((LINES - (offset)) / 2))
+#define CENTER_X(offset) (((COLS - (offset)) / 2))
+#define STATE_FILE "game_state.bin"
 
 typedef enum {
   key_invalid,
@@ -20,6 +22,7 @@ typedef enum {
   key_exit,
   key_resize,
   key_usage,
+  key_force_quit,
 } Key;
 
 typedef enum {
@@ -37,20 +40,15 @@ struct status_line {
   Key key;
 };
 
-struct gmatrix {
+struct game_state {
+  uint16_t order;
   uint16_t curs_x;
   uint16_t curs_y;
-  uint16_t order;
-  Key undo_stack[STK_SIZE];
-  Key redo_stack[STK_SIZE];
   int16_t utop;
   int16_t rtop;
+  Key undo_stack[STK_SIZE];
+  Key redo_stack[STK_SIZE];
   int** mat;
-};
-
-struct game_obj {
-  Mode mode;
-  struct gmatrix gmat;
 };
 
 static void swap(int *x, int *y) { *x = *x ^ *y; *y = *x ^ *y; *x = *x ^ *y; }
@@ -73,23 +71,23 @@ Key pop_key(Key stk[], int16_t *top) {
 }
 
 // return 1 if elements are sorted.
-bool update_matrix_view(const struct gmatrix gmat) {
-  int count = 0, in_place = 0, n_elements = gmat.order * gmat.order;
+bool update_matrix_view(const struct game_state gs) {
+  int count = 0, in_place = 0, n_elements = gs.order * gs.order;
   erase();
   
-  for (int i = 0; i < gmat.order; i++) {
-    move(CENTER_Y(gmat.order) + i, CENTER_X(gmat.order * 4));
-    for (int j = 0; j < gmat.order; j++) {
-      if (i == gmat.curs_x && j == gmat.curs_y) {
+  for (int i = 0; i < gs.order; i++) {
+    move(CENTER_Y(gs.order) + i, CENTER_X(gs.order * 4));
+    for (int j = 0; j < gs.order; j++) {
+      if (i == gs.curs_x && j == gs.curs_y) {
         printw("    ");
       } else {
-        if (count == gmat.mat[i][j] - 1) {
+        if (count == gs.mat[i][j] - 1) {
           in_place++;
           attron(A_BOLD);
-          printw("%3d ", gmat.mat[i][j]);
+          printw("%3d ", gs.mat[i][j]);
           attroff(A_BOLD);
         } else {
-          printw("%3d ", gmat.mat[i][j]);
+          printw("%3d ", gs.mat[i][j]);
         }
         count++;
       }
@@ -109,59 +107,93 @@ Key decode_key(int ch) {
     case 'u' : return key_undo;
     case 'r' : return key_redo;
     case 'q' : return key_exit;
+    case 'Q' : return key_force_quit;
     case KEY_RESIZE : return key_resize;
     case '?' : return key_usage;
   }
   return key_invalid;
 }
 
-void mov_zero(struct gmatrix* gmat, struct status_line *sl, Key key, bool undoing) {
-  int x = gmat->curs_x, y = gmat->curs_y;
+void mov_zero(struct game_state* gs, struct status_line *sl, Key key, bool undoing) {
+  int x = gs->curs_x, y = gs->curs_y;
   switch (key) {
     case key_up :
       if (x == 0) return; else x--; break;
     case key_down :
-      if (x == gmat->order - 1) return; else x++; break;
+      if (x == gs->order - 1) return; else x++; break;
     case key_right :
-      if (y == gmat->order - 1) return; else y++; break;
+      if (y == gs->order - 1) return; else y++; break;
     case key_left :
       if (y == 0) return; else y--; break;
     default : return;
   }
 
   if (!undoing) {
-    push_key(gmat->undo_stack, &gmat->utop, key * -1);
+    push_key(gs->undo_stack, &gs->utop, key * -1);
     sl->moves++;
     sl->key = key;
   }
-  swap(&(gmat->mat[x][y]), &(gmat->mat[gmat->curs_x][gmat->curs_y]));
-  gmat->curs_x = x;
-  gmat->curs_y = y;
+  swap(&(gs->mat[x][y]), &(gs->mat[gs->curs_x][gs->curs_y]));
+  gs->curs_x = x;
+  gs->curs_y = y;
 }
 
-void gmatrix_populate(struct gmatrix* gmatrix) {
-  int order = gmatrix->order, n = order * order, elements[n], pos;
-  elements[0] = 0;
-  for (size_t i = 1; i < n; i++) {
-    elements[i] = i;
+// In an even-order puzzle, solvability depends not only on
+// the number of inversions but also on the row position of
+// the empty tile
+bool is_solvable(int* list, int order) {
+    int inversions = 0;
+    int size = order * order;
+    int blank_row = 0; // Row index of blank tile (zero)
+
+    for (int i = 0; i < size; i++) {
+        if (list[i] == 0) {
+            blank_row = i / order;  // Get row position of the blank (zero)
+            continue;
+        }
+        for (int j = i + 1; j < size; j++) {
+            if (list[j] && list[i] > list[j]) {
+                inversions++;
+            }
+        }
+    }
+
+    if (order % 2 != 0) {
+        return (inversions % 2 == 0);
+    }
+    return ((inversions + blank_row) % 2 == 1);
+}
+
+void make_random_array(int* arr, size_t size) {
+  uint32_t pos;
+  arr[0] = 0;
+  for (size_t i = 1; i < size; i++) {
+    arr[i] = i;
     pos = rand() % i;
-    swap(&elements[pos], &elements[i]);
+    swap(&arr[pos], &arr[i]);
   }
-  pos = 0;
+}
+
+void populate_gmat(struct game_state* gs) {
+  int order = gs->order, rand_arr[order * order], pos = 0;
+  do {
+    make_random_array(rand_arr, order * order);
+  } while (!is_solvable(rand_arr, order));
+
   for (int i = 0; i < order; i++) {
     for (int j = 0; j < order; j++) {
-      if (elements[pos] == 0) {
-        gmatrix->curs_x = i;
-        gmatrix->curs_y = j;
+      if (rand_arr[pos] == 0) {
+        gs->curs_x = i;
+        gs->curs_y = j;
       }
-      gmatrix->mat[i][j] = elements[pos];
+      gs->mat[i][j] = rand_arr[pos];
       pos++;
     }
   }
 }
 
-struct gmatrix gmatrix_init(Arena* arena, int order) {
-  struct gmatrix gmat = {
+struct game_state game_state_init(Arena* arena, int order) {
+  struct game_state gs = {
     .order = order,
     .curs_x = -1,
     .curs_y = -1,
@@ -170,10 +202,9 @@ struct gmatrix gmatrix_init(Arena* arena, int order) {
     .rtop = -1,
   };
   for (int i = 0; i < order; i++) {
-    gmat.mat[i] = arena_alloc(arena, sizeof(int) * order);
+    gs.mat[i] = arena_alloc(arena, sizeof(int) * order);
   }
-  gmatrix_populate(&gmat);
-  return gmat;
+  return gs;
 }
 
 void print_status_line(struct status_line data) {
@@ -181,7 +212,8 @@ void print_status_line(struct status_line data) {
   getyx(stdscr, current_x, current_y);
 
   mvprintw(LINES - 1, 1, " moves: %2zu", data.moves);
-  mvprintw(LINES - 1, CENTER_X(strlen(data.msg)), "%s", data.msg);
+  if (COLS > 30)
+    mvprintw(LINES - 1, CENTER_X(strlen(data.msg) - 8), "%s", data.msg);
 
   move(LINES - 1, COLS - 2);
   switch(data.key) {
@@ -250,13 +282,14 @@ int input_custom_difficulty() {
 
 void display_usage() {
   const char* help_msg[] = {
-    "left-arrow, h, a : moves cursor left",
-    "down-arrow, j, s : moves cursor down",
-    "up-arrow,   k, w : moves cursor up",
-    "right-arrow,l, d : moves cursor left",
+    "left-arrow, h, a : moves cursor to left",
+    "down-arrow, j, s : moves cursor to down",
+    "up-arrow,   k, w : moves cursor to up",
+    "right-arrow,l, d : moves cursor to left",
     "u                : undo move",
     "r                : redo move",
-    "q                : exit from the game",
+    "qq               : save & exit",
+    "Q                : exit without saving",
     "Enter            : choose selected item",
     "?                : shows this window",
     " ",
@@ -264,9 +297,9 @@ void display_usage() {
   };
 
   int h = sizeof(help_msg) / sizeof(char*);
-  int w = strlen(help_msg[7]);
+  int w = strlen(help_msg[0]);
   refresh();
-  WINDOW* usage_win = newwin(h + 2, w + 2, CENTER_Y(h), CENTER_X(w));
+  WINDOW* usage_win = newwin(h + 2, w + 3, CENTER_Y(h), CENTER_X(w));
   box(usage_win, 0, 0);
 
   for (int i = 0; i < h; i++) {
@@ -301,9 +334,11 @@ uint16_t choose_mode(struct status_line status) {
       case key_usage:
         display_usage();
         break;
-      case key_up : case key_down : break;
+      case key_up : case key_down : case key_resize : break;
       default : continue;
     } 
+    erase();
+    print_status_line(status);
     show_menu(key, &highlight);
     refresh();
   }
@@ -320,10 +355,76 @@ struct status_line status_line(char* msg) {
   };
 }
 
+void save_game_state(struct game_state* gs) {
+  FILE* state_file = fopen(STATE_FILE, "wb");
+  if (state_file == NULL) {
+    perror("Failed to write to state file");
+    exit(EXIT_FAILURE);
+  }
+
+  fwrite(&gs->order, sizeof(typeof(gs->order)), 1, state_file);
+  fwrite(&gs->curs_x, sizeof(typeof(gs->curs_x)), 1, state_file);
+  fwrite(&gs->curs_y, sizeof(typeof(gs->curs_y)), 1, state_file);
+  fwrite(&gs->utop, sizeof(typeof(gs->utop)), 1, state_file);
+  fwrite(&gs->rtop, sizeof(typeof(gs->rtop)), 1, state_file);
+
+  fwrite(gs->undo_stack, sizeof(Key), STK_SIZE, state_file);
+  fwrite(gs->redo_stack, sizeof(Key), STK_SIZE, state_file);
+
+  for (int i = 0; i < gs->order; i++) {
+    fwrite(gs->mat[i], sizeof(int), gs->order, state_file);
+  }
+
+  fclose(state_file);
+}
+
+static size_t get_file_size(FILE* file) {
+  fseek(file, 0, SEEK_END);
+  size_t fsize = ftell(file);
+  rewind(file);
+  return fsize;
+}
+
+struct game_state load_game_state(Arena* arena) {
+  FILE* state_file = fopen(STATE_FILE, "rb");
+  if (state_file == NULL) {
+    perror("Failed to load state file");
+    endwin();
+    exit(EXIT_FAILURE);
+  }
+
+  size_t file_size = get_file_size(state_file);
+  if (file_size < sizeof(uint16_t) * 3 + sizeof(uint16_t) * 2 + (sizeof(Key) * STK_SIZE * 2)) {
+    perror("Couldn't find any saved game state");
+    fclose(state_file);
+    endwin();
+    exit(EXIT_FAILURE);
+  }
+
+  uint16_t order;
+  fread(&order, sizeof(uint16_t), 1, state_file);
+  struct game_state gs = game_state_init(arena, order);
+
+  fread(&gs.curs_x, sizeof(typeof(gs.curs_x)), 1, state_file);
+  fread(&gs.curs_y, sizeof(typeof(gs.curs_y)), 1, state_file);
+  fread(&gs.utop, sizeof(typeof(gs.utop)), 1, state_file);
+  fread(&gs.rtop, sizeof(typeof(gs.rtop)), 1, state_file);
+
+  fread(gs.undo_stack, sizeof(Key), STK_SIZE, state_file);
+  fread(gs.redo_stack, sizeof(Key), STK_SIZE, state_file);
+
+  for (int i = 0; i < gs.order; i++) {
+    fread(gs.mat[i], sizeof(int), gs.order, state_file);
+  }
+  fclose(state_file);
+  return gs;
+}
+
 int main(int argc, char* argv[]) {
   srand(time(NULL));
   Arena *arena = arena_init(ARENA_128);
-  struct game_obj gobj;
+
+  struct game_state gs;
 
   initscr();
   noecho();
@@ -333,35 +434,47 @@ int main(int argc, char* argv[]) {
 
   struct status_line status = status_line("press '?' for help");
 
-  gobj.mode = choose_mode(status);
-  gobj.gmat = gmatrix_init(arena, gobj.mode);
+  Mode mode = choose_mode(status);
+
+  if (mode == mode_load) {
+    gs = load_game_state(arena);
+  } else {
+    gs = game_state_init(arena, mode);
+    populate_gmat(&gs);
+  }
 
   bool completed = false;
   Key key;
 
   status.msg = "sort the matrix!";
-  update_matrix_view(gobj.gmat);
+  update_matrix_view(gs);
   print_status_line(status);
 
+  uint16_t order;
   bool undoing;
   while (key != key_exit) {
     undoing = false;
     key = decode_key(getch());
 
-    if (key == key_invalid || key == key_exit) continue;
-    else if(key == key_undo) {
-      if ((key = pop_key(gobj.gmat.undo_stack, &gobj.gmat.utop)) == key_invalid) continue;
-      push_key(gobj.gmat.redo_stack, &gobj.gmat.rtop, key * -1);
-      undoing = true;
-    } else if (key == key_redo) {
-      if ((key = pop_key(gobj.gmat.redo_stack, &gobj.gmat.rtop)) == key_invalid) continue;
-      push_key(gobj.gmat.undo_stack, &gobj.gmat.utop, key * -1);
-      undoing = true;
-    } else if(key == key_usage) {
-      display_usage();
+    switch (key) {
+      case key_invalid : case key_exit : continue;
+      case key_undo :
+        if ((key = pop_key(gs.undo_stack, &gs.utop)) == key_invalid) continue;
+        push_key(gs.redo_stack, &gs.rtop, key * -1);
+        undoing = true;
+        break;
+      case key_redo:
+        if ((key = pop_key(gs.redo_stack, &gs.rtop)) == key_invalid) continue;
+        push_key(gs.undo_stack, &gs.utop, key * -1);
+        undoing = true;
+        break;
+      case key_usage : display_usage();
+        break;
+      case key_force_quit : goto exit;
+      default : break;
     }
-    mov_zero(&gobj.gmat, &status, key, undoing);
-    completed = update_matrix_view(gobj.gmat);
+    mov_zero(&gs, &status, key, undoing);
+    completed = update_matrix_view(gs);
     if (completed) {
       status.msg = "You Won! press 'q' to quit!";
       key = key_exit;
@@ -371,13 +484,15 @@ int main(int argc, char* argv[]) {
   } 
 
   if (!completed) {
-    status.msg = "interrupted. press 'q' to quit";
+    save_game_state(&gs);
+    status.msg = "Game saved. Press 'q' to quit";
     print_status_line(status);
     refresh();
   }
   while(getch() != 'q');
 
-  endwin();
-  arena_free(arena);
-  return 0;
+  exit:
+    endwin();
+    arena_free(arena);
+    return 0;
 }
