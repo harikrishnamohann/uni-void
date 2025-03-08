@@ -1,13 +1,5 @@
 #include "../include/uni-void.h"
 
-void update_moves(struct game_state* gs) {
-  if (gs->count_ctrl == count_up) {
-    gs->moves++;
-  } else if (gs->count_ctrl == count_down){
-    gs->moves--;
-  }
-}
-
 // return 1 if elements are sorted.
 bool update_matrix_view(const struct game_state* gs) {
   int count = 0, in_place = 0, n_elements = gs->order * gs->order;
@@ -130,8 +122,8 @@ void show_menu(Key key, uint16_t *highlight) {
   } 
 }
 
-int input_number(const char* query) {
-  char difficulty[10];
+char* input_str(const char* query) {
+  char difficulty[50];
   erase();
   mvprintw(LINES / 2, CENTER_X(strlen(query)), "%s", query);
   echo();
@@ -142,12 +134,9 @@ int input_number(const char* query) {
   noecho();
   cbreak();
   curs_set(0);
-  return atoi(difficulty);
+  return strdup(difficulty);
 }
 
-static inline Mode decode_mode(uint16_t highlight) {
-  return (highlight == 0) ? mode_load : highlight + 2; // since game mode start at 3 higlight should be offseted by 2
-}
 
 uint16_t choose_mode(struct status_line status) {
   uint16_t highlight = 0;
@@ -158,10 +147,7 @@ uint16_t choose_mode(struct status_line status) {
   while (key != key_exit) {
     key = decode_key(getch());
     switch (key) {
-      case key_return :
-        if (highlight == mode_exit) goto exit;
-        else if (highlight == mode_custom) return input_number("Enter order of the matrix: ");
-        else return decode_mode(highlight);
+      case key_return : return highlight;
       case key_usage:
         display_usage();
         break;
@@ -173,9 +159,8 @@ uint16_t choose_mode(struct status_line status) {
     show_menu(key, &highlight);
     refresh();
   }
-  exit:
-    endwin();
-    exit(0);
+  endwin();
+  exit(0);
 }
 
 struct game_state game_state_init(Arena* arena, int order) {
@@ -219,17 +204,33 @@ int main(int argc, char* argv[]) {
 
   Mode mode = choose_mode(status);
 
-  if (mode == mode_load) {
-    gs = load_game_state(arena);
-    } else {
-    gs = game_state_init(arena, mode);
-    populate_mat(&gs);
-    gs.count_ctrl = count_up;
+  switch (mode) {
+    case mode_load :
+      gs = load_game_state(arena);
+      break;
+    case mode_hard :
+      gs = game_state_init(arena, mode + 2);
+      populate_mat(&gs);
+      gs.moves = HARD_MODE_MOVE_LIMIT;
+      gs.count_ctrl = count_down;
+      break;
+    case mode_easy :
+    case mode_normal :
+      gs = game_state_init(arena, mode + 2);
+      populate_mat(&gs);
+      gs.count_ctrl = count_up;
+      break;
+    case mode_custom :
+      gs = game_state_init(arena, atoi(input_str("Enter order of matrix: ")));
+      populate_mat(&gs);
+      gs.count_ctrl = count_up;
+      break;
+    case mode_exit : goto exit;
   }
 
   bool completed = false;
   Key key;
-  Counter counting;
+  Counter counter;
 
   status.msg = "sort the matrix!";
   status.moves = gs.moves;
@@ -261,14 +262,20 @@ int main(int argc, char* argv[]) {
       default : break;
     }
 
-    counting = mov_zero(&gs, key);
+    counter = mov_zero(&gs, key);
     completed = update_matrix_view(&gs);
 
-    if (counting && !undoing ) {
+    if (counter != count_stop && !undoing ) {
       push_key(gs.undo_stack, &gs.utop, key * -1);
       update_moves(&gs);
       status.moves = gs.moves;
       status.key = key;
+      if (mode == mode_hard && gs.moves == 0) {
+        status.msg = "Game over! press 'q' to exit";
+        print_status_line(status);
+        refresh();
+        goto wait_and_exit;
+      }
     }
 
     if (completed) {
@@ -286,6 +293,7 @@ int main(int argc, char* argv[]) {
     refresh();
   }
 
+  wait_and_exit:
   while(getch() != 'q');
 
   exit:
@@ -354,3 +362,12 @@ bool is_solvable(int* list, int order) {
     }
     return ((inversions + blank_row) % 2 == 1);
 }
+
+void update_moves(struct game_state* gs) {
+  if (gs->count_ctrl == count_up) {
+    gs->moves++;
+  } else if (gs->count_ctrl == count_down){
+    gs->moves--;
+  }
+}
+

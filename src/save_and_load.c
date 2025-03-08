@@ -1,5 +1,7 @@
 #include "../include/uni-void.h"
 
+#define STATE_FILE "game_state.bin"
+
 void save_game_state(struct game_state* gs) {
   FILE* state_file = fopen(STATE_FILE, "wb");
   if (state_file == NULL) {

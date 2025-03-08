@@ -7,6 +7,6 @@
 - ~~help window~~
 - ~~ensure the solvability of puzzle~~
 - ~~save and load functionality~~
+- ~~add a mode with limited number of moves~~
 - display leaderboard on game completion
 - sound effects
-- add a mode with limited number of moves

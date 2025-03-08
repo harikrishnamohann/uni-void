@@ -11,7 +11,8 @@
 #define STK_SIZE 60
 #define CENTER_Y(offset) (((LINES - (offset)) / 2))
 #define CENTER_X(offset) (((COLS - (offset)) / 2))
-#define STATE_FILE "game_state.bin"
+
+#define HARD_MODE_MOVE_LIMIT 300
 
 typedef enum {
   key_invalid,
