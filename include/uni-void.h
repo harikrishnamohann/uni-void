@@ -11,6 +11,7 @@
 #define STK_SIZE 60
 #define CENTER_Y(offset) (((LINES - (offset)) / 2))
 #define CENTER_X(offset) (((COLS - (offset)) / 2))
+#define MODE_OFFSET 2
 
 #define HARD_MODE_MOVE_LIMIT 300
 
@@ -52,6 +53,7 @@ struct status_line {
 
 struct game_state {
   uint16_t order;
+  uint16_t mode;
   uint16_t curs_x;
   uint16_t curs_y;
   uint16_t moves;

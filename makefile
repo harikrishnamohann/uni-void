@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -lncurses
 DEBUG = debug
 
-check: obj target target/$(DEBUG)
+all: obj target target/$(DEBUG)
 
 # Run target
 run: obj target target/$(DEBUG)

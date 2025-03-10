@@ -166,6 +166,7 @@ uint16_t choose_mode(struct status_line status) {
 struct game_state game_state_init(Arena* arena, int order) {
   struct game_state gs = {
     .order = order,
+    .mode = order - MODE_OFFSET,
     .curs_x = -1,
     .curs_y = -1,
     .moves = 0,
@@ -209,14 +210,14 @@ int main(int argc, char* argv[]) {
       gs = load_game_state(arena);
       break;
     case mode_hard :
-      gs = game_state_init(arena, mode + 2);
+      gs = game_state_init(arena, mode + MODE_OFFSET);
       populate_mat(&gs);
       gs.moves = HARD_MODE_MOVE_LIMIT;
       gs.count_ctrl = count_down;
       break;
     case mode_easy :
     case mode_normal :
-      gs = game_state_init(arena, mode + 2);
+      gs = game_state_init(arena, mode + MODE_OFFSET);
       populate_mat(&gs);
       gs.count_ctrl = count_up;
       break;
@@ -270,7 +271,7 @@ int main(int argc, char* argv[]) {
       update_moves(&gs);
       status.moves = gs.moves;
       status.key = key;
-      if (mode == mode_hard && gs.moves == 0) {
+      if (gs.mode == mode_hard && gs.moves == 0) {
         status.msg = "Game over! press 'q' to exit";
         print_status_line(status);
         refresh();
