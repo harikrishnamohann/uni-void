@@ -1,6 +1,6 @@
 #include "../include/uni-void.h"
 
-#define STATE_FILE "game_state.bin"
+#define STATE_FILE "essentials/game_state.bin"
 
 void save_game_state(struct game_state* gs) {
   FILE* state_file = fopen(STATE_FILE, "wb");
@@ -19,6 +19,7 @@ void save_game_state(struct game_state* gs) {
 
   fwrite(gs->undo_stack, sizeof(Key), STK_SIZE, state_file);
   fwrite(gs->redo_stack, sizeof(Key), STK_SIZE, state_file);
+  
 
   for (int i = 0; i < gs->order; i++) {
     fwrite(gs->mat[i], sizeof(int), gs->order, state_file);
