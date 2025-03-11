@@ -1,11 +1,12 @@
 #include "../include/uni-void.h"
+#include <threads.h>
 
 #define LEADERBOARD_FILE "essentials/highscores.csv"
-#define LEADERBOARD_ENTRIES 10
+#define LEADERBOARD_ENTRIES 8
 
-static Arena* scores_arena;
+static Arena* csv_arena;
 
-struct highscore {
+struct leaderboard_record {
   uint16_t order;
   uint16_t moves;
   char *player_name;
@@ -76,13 +77,13 @@ struct token tok_next_token(FILE* fp) {
     }
   }  
   ret:
-    return token_init(scores_arena, (*buf == EOF) ? tok_eof : token_type, buf);
+    return token_init(csv_arena, (*buf == EOF) ? tok_eof : token_type, buf);
 }
 
 static inline void skip_csv_header(FILE* fp) { while (tok_next_token(fp).type != tok_end_record); }
 
-struct highscore highscore_init(uint16_t order, uint16_t moves, char* name, time_t time) {
-  return (struct highscore) {
+struct leaderboard_record highscore_init(uint16_t order, uint16_t moves, char* name, time_t time) {
+  return (struct leaderboard_record) {
     .order = order,
     .moves = moves,
     .player_name = name,
@@ -90,10 +91,10 @@ struct highscore highscore_init(uint16_t order, uint16_t moves, char* name, time
   };
 }
 
-struct highscore parse_next_record(FILE* fp) {
+struct leaderboard_record parse_next_record(FILE* fp) {
   int8_t top = -1, total_fields = 5; 
   struct token tok_record[total_fields];
-  struct highscore record = {0, 0, NULL, 0};
+  struct leaderboard_record record = {0, 0, NULL, 0};
 
   while (++top < total_fields) {
     tok_record[top] = tok_next_token(fp);
@@ -110,7 +111,7 @@ struct highscore parse_next_record(FILE* fp) {
   return record;
 }
 
-uint32_t load_leader_board(struct highscore *records, uint16_t order) {
+uint32_t load_leader_board(struct leaderboard_record *records, uint16_t order) {
   FILE* fp = fopen(LEADERBOARD_FILE, "r");
   if (fp == NULL) {
     perror("Failed to open file\n");
@@ -118,24 +119,33 @@ uint32_t load_leader_board(struct highscore *records, uint16_t order) {
   }
 
   skip_csv_header(fp);
-  struct highscore tmp_record;
+  struct leaderboard_record tmp_record = parse_next_record(fp);
   uint16_t j = 0;
-  while (j < LEADERBOARD_ENTRIES) {
-    tmp_record = parse_next_record(fp);
-    if (tmp_record.order == 0) break;
-    if (tmp_record.order == order) {
+  if (order == 0) {
+    while (tmp_record.order != 0) {
       records[j++] = tmp_record;
+      tmp_record = parse_next_record(fp);
+    }
+  } else {
+    while (j < LEADERBOARD_ENTRIES && tmp_record.order != 0) {
+      if (tmp_record.order == order) {
+        records[j++] = tmp_record;
+      }
+      tmp_record = parse_next_record(fp);
     }
   }
   fclose(fp);
   return j;
 }
 
-void sort_records_using_moves(struct highscore* records, size_t size) {
+static inline bool order_dec(uint16_t a, uint16_t b) { return a < b; }
+static inline bool order_asc(uint16_t a, uint16_t b) { return a > b; }
+
+void sort_records_using_moves(struct leaderboard_record* records, size_t size, bool (*order_by)(uint16_t, uint16_t)) {
   for (int i = 0; i < size; i++) {
-    struct highscore key = records[i];
+    struct leaderboard_record key = records[i];
     int j = i - 1;
-    while (j >= 0 && records[j].moves > key.moves) {
+    while (j >= 0 && order_by(records[j].moves , key.moves)) {
       records[j + 1] = records[j];
       j--;
     }
@@ -143,21 +153,62 @@ void sort_records_using_moves(struct highscore* records, size_t size) {
   }
 }
 
+void save_record(const struct leaderboard_record* new_record) {
+  struct leaderboard_record *all_records = arena_alloc(csv_arena, sizeof(struct leaderboard_record) * LEADERBOARD_ENTRIES * 4);  
+  all_records[0] = *new_record;
+  size_t read_entries = load_leader_board(all_records + 1, 0) + 1;
+
+  FILE* fp = fopen(LEADERBOARD_FILE, "w");
+  if (fp == NULL) {
+    perror("Failed to open leaderboard file for writing");
+    return;
+  }
+
+  // Writing CSV header
+  fprintf(fp, "Order,Moves,Player,Time\n");
+
+  // Writing leaderboard records
+  for (size_t i = 0; i < read_entries; i++) {
+    fprintf(fp, "%d,%d,%s,%lu\n", all_records[i].order, all_records[i].moves, all_records[i].player_name, all_records[i].time);
+  }
+
+  fclose(fp);
+}
+
 void display_highscores(const struct game_state* gs, char* name) {
-  scores_arena = arena_init(ARENA_128);
+  csv_arena = arena_init(ARENA_1024);
+
   char* player_name = strdup(name);
-  struct highscore records[LEADERBOARD_ENTRIES];
+  struct leaderboard_record new_record = highscore_init(gs->order, gs->moves, player_name, time(NULL));
+  save_record(&new_record);
+
+  struct leaderboard_record *records = arena_alloc(csv_arena, sizeof(struct leaderboard_record) * LEADERBOARD_ENTRIES);
 
   size_t read_records = load_leader_board(records, gs->order);
-  struct highscore new_highscore = highscore_init(gs->order, gs->moves, player_name, time(NULL));
 
   if (read_records) {
-    sort_records_using_moves(records, read_records);
+    void* ordering;
+    if (gs->mode == mode_hard) {
+      ordering = order_dec;
+    } else {
+      ordering = order_asc;
+    }
+    sort_records_using_moves(records, read_records, ordering);
+
     for (int i = 0; i < read_records; i++) {
-      printf("%s\n", records[i].player_name);
+      printf("%d, %d, %s, %lu\n", records[i].order, records[i].moves, records[i].player_name, records[i].time);
     }
   }
 
   free(player_name);
-  arena_free(scores_arena);
+  arena_free(csv_arena);
+}
+
+int main() {
+  struct game_state gs = {
+    .mode = mode_normal,
+    .order = 4,
+    .moves = 33
+  };
+  display_highscores(&gs, "pii");
 }
