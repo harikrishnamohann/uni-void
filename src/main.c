@@ -1,5 +1,75 @@
 #include "../include/uni-void.h"
 
+struct game_state game_state_init(Arena* arena, int order) {
+  struct game_state gs = {
+    .order = order,
+    .mode = order - MODE_OFFSET,
+    .curs_x = -1,
+    .curs_y = -1,
+    .moves = 0,
+    .count_ctrl = count_stop,
+    .mat = arena_alloc(arena, sizeof(int*) * order),
+    .utop = -1,
+    .rtop = -1,
+  };
+  for (int i = 0; i < order; i++) {
+    gs.mat[i] = arena_alloc(arena, sizeof(int) * order);
+  }
+  return gs;
+}
+
+struct status_line status_line_init(char* msg) {
+  return (struct status_line) {
+    .moves = 0,
+    .key = 0,
+    .msg = msg
+  };
+}
+
+// In an even-order puzzle, solvability depends not only on
+// the number of inversions but also on the row position of
+// the empty tile
+bool is_solvable(int* list, int order) {
+    int inversions = 0;
+    int size = order * order;
+    int blank_row = 0; // Row index of blank tile (zero)
+
+    for (int i = 0; i < size; i++) {
+        if (list[i] == 0) {
+            blank_row = i / order;  // Get row position of the blank (zero)
+            continue;
+        }
+        for (int j = i + 1; j < size; j++) {
+            if (list[j] && list[i] > list[j]) {
+                inversions++;
+            }
+        }
+    }
+
+    if (order % 2 != 0) {
+        return (inversions % 2 == 0);
+    }
+    return ((inversions + blank_row) % 2 == 1);
+}
+
+void populate_mat(struct game_state* gs) {
+  int order = gs->order, rand_arr[order * order], pos = 0;
+  do {
+    make_radomized_array(rand_arr, order * order);
+  } while (!is_solvable(rand_arr, order));
+
+  for (int i = 0; i < order; i++) {
+    for (int j = 0; j < order; j++) {
+      if (rand_arr[pos] == 0) {
+        gs->curs_x = i;
+        gs->curs_y = j;
+      }
+      gs->mat[i][j] = rand_arr[pos];
+      pos++;
+    }
+  }
+}
+
 // return 1 if elements are sorted.
 bool update_matrix_view(const struct game_state* gs) {
   int count = 0, in_place = 0, n_elements = gs->order * gs->order;
@@ -45,24 +115,6 @@ Counter mov_zero(struct game_state* gs, Key key) {
   gs->curs_x = x;
   gs->curs_y = y;
   return gs->count_ctrl;
-}
-
-void populate_mat(struct game_state* gs) {
-  int order = gs->order, rand_arr[order * order], pos = 0;
-  do {
-    make_radomized_array(rand_arr, order * order);
-  } while (!is_solvable(rand_arr, order));
-
-  for (int i = 0; i < order; i++) {
-    for (int j = 0; j < order; j++) {
-      if (rand_arr[pos] == 0) {
-        gs->curs_x = i;
-        gs->curs_y = j;
-      }
-      gs->mat[i][j] = rand_arr[pos];
-      pos++;
-    }
-  }
 }
 
 void print_status_line(struct status_line data) {
@@ -122,22 +174,6 @@ void show_menu(Key key, uint16_t *highlight) {
   } 
 }
 
-char* input_str(const char* query) {
-  char difficulty[50];
-  erase();
-  mvprintw(LINES / 2, CENTER_X(strlen(query)), "%s", query);
-  echo();
-  nocbreak();
-  curs_set(1);
-  refresh();
-  getstr(difficulty);
-  noecho();
-  cbreak();
-  curs_set(0);
-  return strdup(difficulty);
-}
-
-
 uint16_t choose_mode(struct status_line status) {
   uint16_t highlight = 0;
   Key key = key_invalid;
@@ -161,32 +197,6 @@ uint16_t choose_mode(struct status_line status) {
   }
   endwin();
   exit(0);
-}
-
-struct game_state game_state_init(Arena* arena, int order) {
-  struct game_state gs = {
-    .order = order,
-    .mode = order - MODE_OFFSET,
-    .curs_x = -1,
-    .curs_y = -1,
-    .moves = 0,
-    .count_ctrl = count_stop,
-    .mat = arena_alloc(arena, sizeof(int*) * order),
-    .utop = -1,
-    .rtop = -1,
-  };
-  for (int i = 0; i < order; i++) {
-    gs.mat[i] = arena_alloc(arena, sizeof(int) * order);
-  }
-  return gs;
-}
-
-struct status_line status_line_init(char* msg) {
-  return (struct status_line) {
-    .moves = 0,
-    .key = 0,
-    .msg = msg
-  };
 }
 
 int main(int argc, char* argv[]) {
@@ -301,74 +311,5 @@ int main(int argc, char* argv[]) {
     endwin();
     arena_free(arena);
     return 0;
-}
-
-
-void display_usage() {
-  const char* help_msg[] = {
-    "left-arrow, h, a : moves cursor to left",
-    "down-arrow, j, s : moves cursor to down",
-    "up-arrow,   k, w : moves cursor to up",
-    "right-arrow,l, d : moves cursor to left",
-    "u                : undo move",
-    "r                : redo move",
-    "qq               : save & exit",
-    "Q                : exit without saving",
-    "Enter            : choose selected item",
-    "?                : shows this window",
-    " ",
-    "  Press any key to close this window",
-  };
-
-  int h = sizeof(help_msg) / sizeof(char*);
-  int w = strlen(help_msg[0]);
-  refresh();
-  WINDOW* usage_win = newwin(h + 2, w + 3, CENTER_Y(h), CENTER_X(w));
-  box(usage_win, 0, 0);
-
-  for (int i = 0; i < h; i++) {
-    mvwprintw(usage_win,i + 1, 1, "%s", help_msg[i]);
-  }
-
-  wrefresh(usage_win);
-  getch();
-  werase(usage_win);
-  wborder(usage_win, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
-  wrefresh(usage_win);
-  delwin(usage_win);
-}
-
-// In an even-order puzzle, solvability depends not only on
-// the number of inversions but also on the row position of
-// the empty tile
-bool is_solvable(int* list, int order) {
-    int inversions = 0;
-    int size = order * order;
-    int blank_row = 0; // Row index of blank tile (zero)
-
-    for (int i = 0; i < size; i++) {
-        if (list[i] == 0) {
-            blank_row = i / order;  // Get row position of the blank (zero)
-            continue;
-        }
-        for (int j = i + 1; j < size; j++) {
-            if (list[j] && list[i] > list[j]) {
-                inversions++;
-            }
-        }
-    }
-
-    if (order % 2 != 0) {
-        return (inversions % 2 == 0);
-    }
-    return ((inversions + blank_row) % 2 == 1);
-}
-
-void update_moves(struct game_state* gs) {
-  if (gs->count_ctrl == count_up) {
-    gs->moves++;
-  } else if (gs->count_ctrl == count_down){
-    gs->moves--;
-  }
 }
 

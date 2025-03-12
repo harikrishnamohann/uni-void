@@ -65,25 +65,14 @@ struct game_state {
   int** mat;
 };
 
-// main.c
-void update_moves(struct game_state* gs);
-bool update_matrix_view(const struct game_state* gs);
-Counter mov_zero(struct game_state* gs, Key key);
-bool is_solvable(int* list, int order);
-void populate_mat(struct game_state* gs);
-struct game_state game_state_init(Arena* arena, int order);
-struct status_line status_line_init(char* msg);
-void print_status_line(struct status_line data);
-void show_menu(Key key, uint16_t *highlight);
-int input_number(const char* query);
-void display_usage();
-uint16_t choose_mode(struct status_line status);
-
 // utils.c
 void swap(int *x, int *y);
 void push_key(Key stk[], int16_t *top, Key key);
 Key pop_key(Key stk[], int16_t *top);
 void make_radomized_array(int* arr, size_t size);
+void update_moves(struct game_state* gs);
+char* input_str(const char* query);
+void display_usage();
 
 // keymap.c
 Key decode_key(int ch);

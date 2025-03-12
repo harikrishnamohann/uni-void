@@ -195,10 +195,18 @@ void display_leaderboards(const struct game_state* gs, char* name) {
     sort_records_using_moves(records, read_records_count, (gs->mode == mode_hard) ? order_dec : order_asc);
     uint8_t rank;
     for (int i = 0; i < read_records_count; i++) {
-      if (strcmp(records[i].player_name, player_name) == 0) {
+      if (strcmp(records[i].player_name, player_name) == 0 && records[i].moves == new_record.moves) {
         rank = i;
         break;
       }
+    }
+
+    char *mode;
+    switch (gs->mode) {
+      case mode_easy: mode = "Easy"; break;
+      case mode_normal: mode = "Normal"; break;
+      case mode_hard: mode = "Hard"; break;
+      default: mode = "Custom"; break; 
     }
 
     erase();
@@ -210,9 +218,10 @@ void display_leaderboards(const struct game_state* gs, char* name) {
     mvprintw(y++, x, "Congrats %s! you are #%d", player_name, rank + 1);
     attroff(A_BOLD);
     y++;
-    attron(A_UNDERLINE);
-    mvprintw(y++, x, "Leaderboard");
-    attroff(A_UNDERLINE);
+    attron(A_DIM);
+    mvprintw(y++, x, "Leaderboard (%s){%dx%d}", mode, new_record.order, new_record.order);
+    attroff(A_DIM);
+    mvchgat(y - 1, x, strlen("Leaderboard"), A_UNDERLINE, 0, NULL);
     mvprintw(y++, x, "%s", template);
 
     struct tm *ctime;
