@@ -92,4 +92,7 @@ Key decode_key(int ch);
 void save_game_state(struct game_state* gs);
 struct game_state load_game_state(Arena* arena);
 
+// leaderboard.c
+void display_leaderboards(const struct game_state* gs, char* name);
+
 #endif

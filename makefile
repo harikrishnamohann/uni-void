@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -lncurses
-DEBUG = debug
+DEBUG = uni-void
 
 all: obj target target/$(DEBUG)
 
@@ -8,12 +8,15 @@ all: obj target target/$(DEBUG)
 run: obj target target/$(DEBUG)
 	./target/$(DEBUG)
 
-target/$(DEBUG): obj/main.o obj/arena.o obj/keymaps.o obj/save_and_load.o obj/utils.o
+target/$(DEBUG): obj/main.o obj/lb.o obj/arena.o obj/keymaps.o obj/save_and_load.o obj/utils.o
 	$(CC) $^ -o $@ $(CFLAGS)
 
 
 # Object files
 obj/main.o: src/main.c
+	$(CC) -c $< -o $@
+
+obj/lb.o: src/leaderboard.c
 	$(CC) -c $< -o $@
 
 obj/keymaps.o: src/keymaps.c

@@ -280,8 +280,8 @@ int main(int argc, char* argv[]) {
     }
 
     if (completed) {
-      status.msg = "You Won! press 'q' to quit!";
-      key = key_exit;
+      display_leaderboards(&gs, input_str("You won, enter your nickname: "));
+      goto wait_and_exit;
     }
     print_status_line(status);
     refresh();
@@ -289,12 +289,12 @@ int main(int argc, char* argv[]) {
 
   if (!completed) {
     save_game_state(&gs);
-    status.msg = "Game saved. Press 'q' to quit";
-    print_status_line(status);
-    refresh();
   }
 
   wait_and_exit:
+  status.msg = "Press 'q' to quit";
+  print_status_line(status);
+  refresh();
   while(getch() != 'q');
 
   exit:
