@@ -1,14 +1,43 @@
+/*
+Hi, myself Harii.
+I wrote this small game to kill my free time and to learn ncurses
+library.  
+
+This is a sliding tile puzzle game where the player has to sort the
+numbers in a matrix in ascending order. The player can move the
+void-tile around to sort the matrix.
+
+The code base is split into separate files with some self-explanatory
+names.
+  - main.c: contains main game logic
+  - keymaps.c: contains a mapping of keys used in the game
+  - utils.c : some utility functions as well as some core logic functions
+  - leaderboard.c : functions for displaying and managing game leaderboard.
+  - save_and_load.c : defines functions for serializing and deserializing
+                      current game state.
+
+Apart from the game logic, I used an arena-allocator for
+managing memory. Leaderboard has separate arena context defined
+in leaderboard.c rather than the arena used for game.
+Arena definition can be found in lib/arena.c
+*/
+
+// This header file contain all structs and macros used in game.
 #include "../include/uni-void.h"
 
+// initialize game_state data type.
 struct game_state game_state_init(Arena* arena, int order) {
   struct game_state gs = {
     .order = order,
     .mode = order - MODE_OFFSET,
+    // since easy mode represents order 3 and index of easy mode
+    // is 1, easy mode = order - 2 (2 is the MODE_OFFSET).
     .curs_x = -1,
     .curs_y = -1,
     .moves = 0,
     .count_ctrl = count_stop,
     .mat = arena_alloc(arena, sizeof(int*) * order),
+    // these are stack pointers for undo(utop) and redo(rtop) stacks.
     .utop = -1,
     .rtop = -1,
   };
@@ -18,6 +47,7 @@ struct game_state game_state_init(Arena* arena, int order) {
   return gs;
 }
 
+// initialize status line with given message.
 struct status_line status_line_init(char* msg) {
   return (struct status_line) {
     .moves = 0,
@@ -26,9 +56,11 @@ struct status_line status_line_init(char* msg) {
   };
 }
 
+// The below function checks solvability of our puzzle.
 // In an even-order puzzle, solvability depends not only on
 // the number of inversions but also on the row position of
 // the empty tile
+// This chat-gpt code. It works as expected.
 bool is_solvable(int* list, int order) {
     int inversions = 0;
     int size = order * order;
@@ -52,16 +84,20 @@ bool is_solvable(int* list, int order) {
     return ((inversions + blank_row) % 2 == 1);
 }
 
+// This function populate our game matrix with a solvable combination
+// of natural numbers sorted in random order.
 void populate_mat(struct game_state* gs) {
   int order = gs->order, rand_arr[order * order], pos = 0;
   do {
+    // below creates an array of whole numbers upto given size limit
+    // and arrange them randomly. Defined in utils.c
     make_radomized_array(rand_arr, order * order);
   } while (!is_solvable(rand_arr, order));
 
   for (int i = 0; i < order; i++) {
     for (int j = 0; j < order; j++) {
-      if (rand_arr[pos] == 0) {
-        gs->curs_x = i;
+      if (rand_arr[pos] == 0) { // 0 is our void-tile.
+        gs->curs_x = i; // saves position of zero to start cursor from there.
         gs->curs_y = j;
       }
       gs->mat[i][j] = rand_arr[pos];
@@ -70,7 +106,8 @@ void populate_mat(struct game_state* gs) {
   }
 }
 
-// return 1 if elements are sorted.
+// prints the matrix using ncurses.
+// return true if all elements are sorted. ie if the game is completd.
 bool update_matrix_view(const struct game_state* gs) {
   int count = 0, in_place = 0, n_elements = gs->order * gs->order;
   erase();
@@ -79,11 +116,11 @@ bool update_matrix_view(const struct game_state* gs) {
     move(CENTER_Y(gs->order) + i, CENTER_X(gs->order * 4));
     for (int j = 0; j < gs->order; j++) {
       if (i == gs->curs_x && j == gs->curs_y) {
-        printw("    ");
+        printw("    "); // void-tile in place of 0
       } else {
         if (count == gs->mat[i][j] - 1) {
           in_place++;
-          attron(A_BOLD);
+          attron(A_BOLD); // highlighting numbers that are in correct position
           printw("%3d ", gs->mat[i][j]);
           attroff(A_BOLD);
         } else {
@@ -94,9 +131,10 @@ bool update_matrix_view(const struct game_state* gs) {
     }
     printw("\n");
   }
-  return (in_place == n_elements - 1);
+  return (in_place == n_elements - 1); // checking if the matrix is sorted.
 }
 
+// this function updates position of our 0 (void-tile) based on key input.
 Counter mov_zero(struct game_state* gs, Key key) {
   int x = gs->curs_x, y = gs->curs_y;
   switch (key) {
@@ -117,7 +155,8 @@ Counter mov_zero(struct game_state* gs, Key key) {
   return gs->count_ctrl;
 }
 
-void print_status_line(struct status_line data) {
+// displays the bottom status line.
+void update_status_line(struct status_line data) {
   int current_x, current_y;
   getyx(stdscr, current_x, current_y);
 
@@ -138,6 +177,7 @@ void print_status_line(struct status_line data) {
   move(current_x, current_y);
 }
 
+// driver function for menu.
 void show_menu(Key key, uint16_t *highlight) {
   int x, y;
   const char* menu_items[] = {
@@ -174,24 +214,24 @@ void show_menu(Key key, uint16_t *highlight) {
   } 
 }
 
+// displays menu.
+// returns index of mode selected from menu.
 uint16_t choose_mode(struct status_line status) {
   uint16_t highlight = 0;
   Key key = key_invalid;
-  print_status_line(status);
+  update_status_line(status);
   show_menu(key, &highlight);
 
   while (key != key_exit) {
     key = decode_key(getch());
     switch (key) {
-      case key_return : return highlight;
-      case key_usage:
-        display_usage();
-        break;
+      case key_enter : return highlight;
+      case key_usage: display_usage(); break;
       case key_up : case key_down : case key_resize : break;
       default : continue;
     } 
     erase();
-    print_status_line(status);
+    update_status_line(status);
     show_menu(key, &highlight);
     refresh();
   }
@@ -205,64 +245,70 @@ int main(int argc, char* argv[]) {
 
   struct game_state gs;
 
-  initscr();
-  noecho();
-  curs_set(0);
-  keypad(stdscr, TRUE);
-  cbreak();
+  initscr(); // initilize ncurses 
+  noecho(); // Disables automatic echoing of typed characters
+  curs_set(0); // set cursor visibility
+  keypad(stdscr, TRUE); // enables special keys
+  cbreak(); // allows input to be read without pressing return key
 
-  struct status_line status = status_line_init("press '?' for help");
+  struct status_line status_line = status_line_init("press '?' for help");
 
-  Mode mode = choose_mode(status);
+  Mode mode = choose_mode(status_line); // loads menu
+  int order = mode + MODE_OFFSET; // here MODE_OFFSET is used to calculate order
 
   switch (mode) {
-    case mode_load :
+    case mode_load : // laod previously saved game.
       gs = load_game_state(arena);
       break;
-    case mode_hard :
-      gs = game_state_init(arena, mode + MODE_OFFSET);
+    case mode_hard : // hord mode has limited moves
+      gs = game_state_init(arena, order); 
       populate_mat(&gs);
-      gs.moves = HARD_MODE_MOVE_LIMIT;
+      gs.moves = HARD_MODE_MOVE_LIMIT; // move limit is defined in univoid.h
       gs.count_ctrl = count_down;
       break;
     case mode_easy :
     case mode_normal :
-      gs = game_state_init(arena, mode + MODE_OFFSET);
+      gs = game_state_init(arena, order);
       populate_mat(&gs);
       gs.count_ctrl = count_up;
       break;
-    case mode_custom :
-      gs = game_state_init(arena, atoi(input_str("Enter order of matrix: ")));
+    case mode_custom : // user can specify order of square matrix.
+      order = atoi(input_str("Input an order from 2 to 16: "));
+      if (order > 16 || order < 2) {
+        status_line.msg = "invalid order! press 'q' to quit";
+        goto wait_and_exit;
+      }
+      gs = game_state_init(arena, order);
       populate_mat(&gs);
       gs.count_ctrl = count_up;
       break;
     case mode_exit : goto exit;
   }
 
-  bool completed = false;
-  Key key;
-  Counter counter;
+  bool completed = false, undoing; // flags to indicate game completion and undo-redo operation
+  Key key; // store keyboard input keys
+  Counter counter; // to indicate wheather or not to update move count.
+  // when void-tile is in any edge, we don't want to count
+  // moves that tries to go off that edge.
 
-  status.msg = "sort the matrix!";
-  status.moves = gs.moves;
+  status_line.msg = "sort the matrix!";
+  status_line.moves = gs.moves;
 
   update_matrix_view(&gs);
-  print_status_line(status);
+  update_status_line(status_line);
 
-  uint16_t order;
-  bool undoing;
   while (key != key_exit) {
     undoing = false;
     key = decode_key(getch());
 
     switch (key) {
       case key_invalid : case key_exit : continue;
-      case key_undo :
+      case key_undo : // pop from undo stack, push inverse of that key to redo stack
         if ((key = pop_key(gs.undo_stack, &gs.utop)) == key_invalid) continue;
         push_key(gs.redo_stack, &gs.rtop, key * -1);
-        undoing = true;
+        undoing = true; // indicator to stop counting moves.
         break;
-      case key_redo:
+      case key_redo: // pop redo-stack, push inverse of that key to undo stack
         if ((key = pop_key(gs.redo_stack, &gs.rtop)) == key_invalid) continue;
         push_key(gs.undo_stack, &gs.utop, key * -1);
         undoing = true;
@@ -273,41 +319,41 @@ int main(int argc, char* argv[]) {
       default : break;
     }
 
+    // updating matrix view
     counter = mov_zero(&gs, key);
     completed = update_matrix_view(&gs);
 
     if (counter != count_stop && !undoing ) {
-      push_key(gs.undo_stack, &gs.utop, key * -1);
+      push_key(gs.undo_stack, &gs.utop, key * -1); // pushing inverse key to undo stack
       update_moves(&gs);
-      status.moves = gs.moves;
-      status.key = key;
-      if (gs.mode == mode_hard && gs.moves == 0) {
-        status.msg = "Game over! press 'q' to exit";
-        print_status_line(status);
-        refresh();
+      status_line.moves = gs.moves;
+      status_line.key = key;
+      if (gs.mode == mode_hard && gs.moves == 0) { // hard_mode ends when counter reach 0
+        status_line.msg = "Game over! press 'q' to exit";
         goto wait_and_exit;
       }
     }
 
     if (completed) {
       display_leaderboards(&gs, input_str("You won, enter your nickname: "));
+      status_line.msg = "Press 'q' to quit...";
       goto wait_and_exit;
     }
-    print_status_line(status);
+    update_status_line(status_line);
     refresh();
   } 
 
   if (!completed) {
     save_game_state(&gs);
+    status_line.msg = "Game saved. Press 'q' to quit";
   }
 
-  wait_and_exit:
-  status.msg = "Press 'q' to quit";
-  print_status_line(status);
+  wait_and_exit: // label to printing some message onto status line before exiting.
+  update_status_line(status_line);
   refresh();
   while(getch() != 'q');
 
-  exit:
+  exit: // directly end the program
     endwin();
     arena_free(arena);
     return 0;

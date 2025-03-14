@@ -1,7 +1,9 @@
 #include "../include/uni-void.h"
 
+// swaps x and y using xor.
 void swap(int *x, int *y) { *x = *x ^ *y; *y = *x ^ *y; *x = *x ^ *y; }
 
+// pushes the key into the undo or redo stack.
 void push_key(Key stk[], int16_t *top, Key key) {
   if (*top == STK_SIZE - 1) { // stack full
     for (int i = 1; i < STK_SIZE; i++) {
@@ -12,6 +14,7 @@ void push_key(Key stk[], int16_t *top, Key key) {
   stk[++(*top)] = key;
 }
 
+// pop key from stack
 Key pop_key(Key stk[], int16_t *top) {
   if (*top == -1) {
     return key_invalid;
@@ -19,6 +22,8 @@ Key pop_key(Key stk[], int16_t *top) {
   return stk[(*top)--];
 }
 
+// query the user and return answer as a char*
+// memory should be freed
 char* input_str(const char* query) {
   char difficulty[50];
   erase();
@@ -34,6 +39,7 @@ char* input_str(const char* query) {
   return strdup(difficulty);
 }
 
+// creates an array of whole numbers up to specified size and arranges them in random order.
 void make_radomized_array(int* arr, size_t size) {
   uint32_t pos;
   arr[0] = 0;
@@ -78,6 +84,7 @@ void display_usage() {
   delwin(usage_win);
 }
 
+// updates moves based on count_ctrl
 void update_moves(struct game_state* gs) {
   if (gs->count_ctrl == count_up) {
     gs->moves++;

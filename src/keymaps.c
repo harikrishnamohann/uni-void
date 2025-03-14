@@ -6,7 +6,7 @@ Key decode_key(int ch) {
     case 'w' : case 'k' : case KEY_UP : return key_up;
     case 'd' : case 'l' : case KEY_RIGHT : return key_right;
     case 'a' : case 'h' : case KEY_LEFT : return key_left;
-    case KEY_ENTER : case '\n' :  return key_return;
+    case KEY_ENTER : case '\n' :  return key_enter;
     case 'u' : return key_undo;
     case 'r' : return key_redo;
     case 'q' : return key_exit;

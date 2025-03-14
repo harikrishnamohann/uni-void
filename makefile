@@ -1,11 +1,11 @@
 CC = gcc
-CFLAGS = -lncurses
+CFLAGS = -lncurses -ldl -lpthread -lm
 DEBUG = uni-void
 
-all: obj target target/$(DEBUG)
+all: obj target game_files target/$(DEBUG)
 
 # Run target
-run: obj target target/$(DEBUG)
+run: obj target game_files target/$(DEBUG)
 	./target/$(DEBUG)
 
 target/$(DEBUG): obj/main.o obj/lb.o obj/arena.o obj/keymaps.o obj/save_and_load.o obj/utils.o
@@ -39,6 +39,10 @@ obj:
 target:
 	@echo "Creating directory ./target"
 	mkdir -p ./target
+
+game_files:
+	@echo "creating directory ./game_files"
+	mkdir -p ./game_files
 
 # Clean target
 clean:
