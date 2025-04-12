@@ -5,14 +5,12 @@ RELEASE = uni-void
 
 all: obj target game_files target/$(DEBUG)
 
-install: release
-	sudo cp target/$(RELEASE) /usr/bin/$(RELEASE)
-
-release: obj target game_files target/$(RELEASE)
 
 # Run target
-run: obj target game_files target/$(DEBUG)
-	./target/$(DEBUG)
+run: release
+	./target/$(RELEASE)
+
+release: obj target game_files target/$(RELEASE)
 
 target/$(RELEASE): obj/main.o obj/lb.o obj/arena.o obj/keymaps.o obj/save_and_load.o obj/utils.o
 	$(CC) -o3 $(CFLAGS) $^ -o $@ 
