@@ -1,11 +1,12 @@
 # Uni-Void
-> A sliding puzzle game in your terminal
+> A sliding puzzle game inside your terminal
 
-Hey all! This is a super simple tui-based game that I made for learning purposes. Let me explain what the game is. The player is presented with an n×n matrix with shuffled numbers and one empty tile. The player is tasked with sorting the matrix in ascending order by sliding that empty tile around inside the matrix. The player can choose a difficulty at the beginning and a leaderboard is displayed on game completion. That's pretty much it!
+Hey all! This is a super simple tui-based game that I made for learning purposes. Let me explain what the game is. You're presented with an n×n matrix with shuffled numbers and one empty tile. you are tasked with sorting the matrix in ascending order by sliding that empty tile around inside the matrix. You can choose a difficulty at the beginning and a leaderboard is displayed on game completion. That's all!
 
+#### demo:
 ![demo](demo.gif)
 
-
+---
 
 ## 🔧 Build Instructions
 
@@ -18,7 +19,7 @@ Hey all! This is a super simple tui-based game that I made for learning purposes
 ### Compile
 
 ```bash
-git clone https://github.com/yourusername/uni-void.git
+git clone https://github.com/harikrishnamohann/uni-void.git
 cd uni-void
 make release
 ```
@@ -64,3 +65,5 @@ or
 
 ### 🤫 pro-tip: 
 you can actually edit the leaderboards
+
+---
