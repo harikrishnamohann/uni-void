@@ -24,6 +24,7 @@ Arena definition can be found in lib/arena.c
 
 // This header file contain all structs and macros used in game.
 #include "../include/uni-void.h"
+#include <ncurses.h>
 
 // initialize game_state data type.
 struct game_state game_state_init(Arena* arena, int order) {
@@ -181,12 +182,12 @@ void update_status_line(struct status_line data) {
 void show_menu(Key key, uint16_t *highlight) {
   int x, y;
   const char* menu_items[] = {
-    "  Load  ",
-    "  Easy  ",
-    " Normal ",
-    "  Hard  ",
-    " Custom ",
-    "  Exit  ",
+    "Load",
+    "Easy",
+    "Normal",
+    "Hard",
+    "Custom",
+    "Exit",
   };
   size_t menu_size = sizeof(menu_items) / sizeof(char*);
 
@@ -202,16 +203,21 @@ void show_menu(Key key, uint16_t *highlight) {
   mvprintw(y++, x, "WELCOME TO UNI-VOID!");
   attroff(A_BOLD);
 
+  attron(A_ITALIC | A_DIM);
   for (size_t i = 0; i < menu_size; i++) {
     x = CENTER_X(strlen(menu_items[i]));
     if (i == *highlight) {
-      attron(A_REVERSE | A_BOLD);
-      mvprintw(y++, x, "%s", menu_items[i]);    
-      attroff(A_REVERSE | A_BOLD);
+      attroff(A_DIM);
+      attron(A_BOLD);
+      mvprintw(y, x - 2, "> ");
+      mvprintw(y++, x, "%s <", menu_items[i]);    
+      attroff( A_BOLD);
+      attron(A_DIM);
     } else {
       mvprintw(y++, x, "%s", menu_items[i]);    
     }
   } 
+  attroff(A_ITALIC | A_DIM);
 }
 
 // displays menu.

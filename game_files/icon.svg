@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="76.764992mm"
+   height="79.764999mm"
+   viewBox="0 0 76.764992 79.764999"
+   version="1.1"
+   id="svg1"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1">
+    <linearGradient
+       id="linearGradient9">
+      <stop
+         style="stop-color:#a67db5;stop-opacity:1;"
+         offset="0.50093788"
+         id="stop10" />
+      <stop
+         style="stop-color:#000000;stop-opacity:0;"
+         offset="0.94208652"
+         id="stop11" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient1">
+      <stop
+         style="stop-color:#e0dceb;stop-opacity:1;"
+         offset="0"
+         id="stop1" />
+      <stop
+         style="stop-color:#c2adf2;stop-opacity:1;"
+         offset="0.23890792"
+         id="stop3" />
+      <stop
+         style="stop-color:#f7eaf7;stop-opacity:1;"
+         offset="1"
+         id="stop2" />
+    </linearGradient>
+    <linearGradient
+       xlink:href="#linearGradient1"
+       id="linearGradient2"
+       x1="77.233147"
+       y1="63.825928"
+       x2="120.28732"
+       y2="113.67813"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       xlink:href="#linearGradient9"
+       id="linearGradient11"
+       x1="76.991898"
+       y1="102.71129"
+       x2="152.25648"
+       y2="102.71129"
+       gradientUnits="userSpaceOnUse" />
+  </defs>
+  <g
+     id="layer1"
+     transform="translate(-76.619363,-62.639955)">
+    <path
+       style="fill:url(#linearGradient2);fill-opacity:1;stroke:url(#linearGradient11);stroke-width:1.765;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
+       id="rect1"
+       width="75"
+       height="78"
+       x="77.124191"
+       y="63.711288"
+       d="m 94.821233,63.711288 h 37.606407 a 19.696548,19.696548 45 0 1 19.69655,19.696548 v 38.340404 a 19.963051,19.963051 135 0 1 -19.96305,19.96305 H 95.687735 A 18.563544,18.563544 45 0 1 77.124191,123.14774 V 81.40833 A 17.697042,17.697042 135 0 1 94.821233,63.711288 Z"
+       transform="translate(0.3776682,-0.1888341)" />
+    <text
+       xml:space="preserve"
+       style="font-size:16.9333px;text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#6e1a9d;fill-opacity:1;stroke-width:0.264583"
+       x="110.57892"
+       y="61.528885"
+       id="text1"
+       transform="rotate(14.442647)"><tspan
+         id="tspan1"
+         style="font-size:16.9333px;fill:#6e1a9d;fill-opacity:1;stroke-width:0.264583"
+         x="110.57892"
+         y="61.528885">0</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:16.9333px;text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#6e1a9d;fill-opacity:1;stroke-width:0.264583"
+       x="121.53864"
+       y="98.307243"
+       id="text1-9"
+       transform="rotate(-4.48789)"><tspan
+         id="tspan1-1"
+         style="font-size:16.9333px;fill:#6e1a9d;fill-opacity:1;stroke-width:0.264583"
+         x="121.53864"
+         y="98.307243">0</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:16.9333px;text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#6e1a9d;fill-opacity:1;stroke-width:0.264583"
+       x="83.921074"
+       y="115.52313"
+       id="text1-93"
+       transform="rotate(-4.6504643)"><tspan
+         id="tspan1-6"
+         style="font-size:16.9333px;fill:#6e1a9d;fill-opacity:1;stroke-width:0.264583"
+         x="83.921074"
+         y="115.52313">0</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:16.9333px;text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#6e1a9d;fill-opacity:1;stroke-width:0.264583"
+       x="96.676933"
+       y="121.16308"
+       id="text1-6"
+       transform="rotate(-7.184423)"><tspan
+         id="tspan1-18"
+         style="font-size:16.9333px;fill:#6e1a9d;fill-opacity:1;stroke-width:0.264583"
+         x="96.676933"
+         y="121.16308">0</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:16.9333px;text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#6e1a9d;fill-opacity:1;stroke-width:0.264583"
+       x="141.97762"
+       y="87.275475"
+       id="text1-0"
+       transform="rotate(8.2749252)"><tspan
+         id="tspan1-2"
+         style="font-size:16.9333px;fill:#6e1a9d;fill-opacity:1;stroke-width:0.264583"
+         x="141.97762"
+         y="87.275475">0</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:16.9333px;text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#6e1a9d;fill-opacity:1;stroke-width:0.264583"
+       x="106.18092"
+       y="114.87982"
+       id="text1-92"
+       transform="rotate(6.9211138)"><tspan
+         id="tspan1-28"
+         style="font-size:16.9333px;fill:#6e1a9d;fill-opacity:1;stroke-width:0.264583"
+         x="106.18092"
+         y="114.87982">0</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:16.9333px;text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#6e1a9d;fill-opacity:1;stroke-width:0.264583"
+       x="109.82245"
+       y="127.46548"
+       id="text1-61"><tspan
+         id="tspan1-29"
+         style="font-size:16.9333px;fill:#6e1a9d;fill-opacity:1;stroke-width:0.264583"
+         x="109.82245"
+         y="127.46548">0</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:16.9333px;text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#6e1a9d;fill-opacity:1;stroke-width:0.264583"
+       x="107.50135"
+       y="147.15215"
+       id="text1-4"
+       transform="rotate(-9.1612991)"><tspan
+         id="tspan1-7"
+         style="font-size:16.9333px;fill:#6e1a9d;fill-opacity:1;stroke-width:0.264583"
+         x="107.50135"
+         y="147.15215">0</tspan></text>
+  </g>
+</svg>
