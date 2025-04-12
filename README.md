@@ -3,7 +3,7 @@
 
 Hey all! This is a super simple tui-based game that I made for learning purposes. Let me explain what the game is. The player is presented with an n×n matrix with shuffled numbers and one empty tile. The player is tasked with sorting the matrix in ascending order by sliding that empty tile around inside the matrix. The player can choose a difficulty at the beginning and a leaderboard is displayed on game completion. That's pretty much it!
 
-![demo](https://github.com/harikrishnamohann/uni-void.git/.placeholder/demo.gif)
+![demo](demo.gif)
 
 
 
