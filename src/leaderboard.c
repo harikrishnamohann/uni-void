@@ -17,8 +17,6 @@ here is the structure of csv file:
 
 #include "../include/uni-void.h"
 
-#define LEADERBOARD_FILE "game_files/highscores.csv"
-
 // maximum number of lines when printing leaderboard
 #define LEADERBOARD_ENTRIES 8
 
@@ -149,10 +147,11 @@ static struct leaderboard_record parse_next_record(FILE* fp) {
 // this way, a single file can be used to store records of all game modes.
 // returns number of records read from file.
 static uint32_t load_leaderboard(struct leaderboard_record *records, uint16_t order) {
+  if (access(LEADERBOARD_FILE, F_OK) != 0) {
+    fclose(fopen(LEADERBOARD_FILE, "w"));
+  }
   FILE* fp = fopen(LEADERBOARD_FILE, "r");
   if (fp == NULL) {
-    perror("Failed to open file\n");
-    exit(EXIT_FAILURE);
   }
 
   struct leaderboard_record tmp_record = parse_next_record(fp);

@@ -231,7 +231,14 @@ uint16_t choose_mode(struct status_line status) {
   while (key != key_exit) {
     key = decode_key(getch());
     switch (key) {
-      case key_enter : return highlight;
+      case key_enter :
+        if (highlight == mode_load && access(STATE_FILE, F_OK) != 0) {
+          status.msg = "No saved game found. Start one!";
+          update_status_line(status);
+          status.msg = "press '?' for help";
+          continue;
+        } 
+        return highlight;
       case key_usage: display_usage(); break;
       case key_up : case key_down : case key_resize : break;
       default : continue;

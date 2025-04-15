@@ -4,9 +4,16 @@
 #include <ncurses.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <time.h>
 #include "../include/arena.h"
+
+// file for storing leaderboard info
+#define LEADERBOARD_FILE "game_files/leaderboard.csv"
+
+// location for serializing game state.
+#define STATE_FILE "game_files/game_state.bin"
 
 // size of stack
 #define STK_SIZE 60 

@@ -2,10 +2,8 @@
 // our struct game_state type.
 #include "../include/uni-void.h"
 
-#define STATE_FILE "game_files/game_state.bin"
-
 void save_game_state(struct game_state* gs) {
-  FILE* state_file = fopen(STATE_FILE, "wb");
+  FILE *state_file = fopen(STATE_FILE, "wb");
   if (state_file == NULL) {
     perror("Failed to write to state file");
     exit(EXIT_FAILURE);
@@ -42,7 +40,7 @@ struct game_state load_game_state(Arena* arena) {
   if (state_file == NULL) {
     perror("Failed to load state file");
     endwin();
-    exit(EXIT_FAILURE);
+    return (struct game_state) {.order = 0};
   }
 
   size_t file_size = get_file_size(state_file);
