@@ -1,6 +1,7 @@
 // this file contains functions to serialize and deserialize
-// our struct game_state type.
-#include "../include/uni-void.h"
+
+#pragma once
+#include "../lib/uni-void.c"
 
 void save_game_state(struct game_state* gs) {
   FILE *state_file = fopen(STATE_FILE, "wb");

@@ -23,38 +23,20 @@ Arena definition can be found in lib/arena.c
 */
 
 // This header file contain all structs and macros used in game.
-#include "../include/uni-void.h"
+#include "../lib/uni-void.c"
 #include <ncurses.h>
+#include "keymaps.c"
+#include "leaderboard.c"
+#include "save_and_load.c"
+#include "utils.c"
 
-// initialize game_state data type.
-struct game_state game_state_init(Arena* arena, int order) {
-  struct game_state gs = {
-    .order = order,
-    .mode = order - MODE_OFFSET,
-    // since easy mode represents order 3 and index of easy mode
-    // is 1, easy mode = order - 2 (2 is the MODE_OFFSET).
-    .curs_x = -1,
-    .curs_y = -1,
-    .moves = 0,
-    .count_ctrl = count_stop,
-    .mat = arena_alloc(arena, sizeof(int*) * order),
-    // these are stack pointers for undo(utop) and redo(rtop) stacks.
-    .utop = -1,
-    .rtop = -1,
-  };
-  for (int i = 0; i < order; i++) {
-    gs.mat[i] = arena_alloc(arena, sizeof(int) * order);
+// updates moves based on count_ctrl
+void update_moves(struct game_state* gs) {
+  if (gs->count_ctrl == count_up) {
+    gs->moves++;
+  } else if (gs->count_ctrl == count_down){
+    gs->moves--;
   }
-  return gs;
-}
-
-// initialize status line with given message.
-struct status_line status_line_init(char* msg) {
-  return (struct status_line) {
-    .moves = 0,
-    .key = 0,
-    .msg = msg
-  };
 }
 
 // The below function checks solvability of our puzzle.

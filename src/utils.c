@@ -1,4 +1,6 @@
-#include "../include/uni-void.h"
+#pragma once
+
+#include "../lib/uni-void.c"
 
 // swaps x and y using xor.
 void swap(int *x, int *y) { *x = *x ^ *y; *y = *x ^ *y; *x = *x ^ *y; }
@@ -82,14 +84,5 @@ void display_usage() {
   wborder(usage_win, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
   wrefresh(usage_win);
   delwin(usage_win);
-}
-
-// updates moves based on count_ctrl
-void update_moves(struct game_state* gs) {
-  if (gs->count_ctrl == count_up) {
-    gs->moves++;
-  } else if (gs->count_ctrl == count_down){
-    gs->moves--;
-  }
 }
 

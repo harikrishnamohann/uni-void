@@ -15,7 +15,10 @@ here is the structure of csv file:
   order, moves, player name, timestamp
 */
 
-#include "../include/uni-void.h"
+#pragma once 
+
+#include "../lib/uni-void.c"
+#include "../lib/arena.c"
 
 // maximum number of lines when printing leaderboard
 #define LEADERBOARD_ENTRIES 8

@@ -10,23 +10,43 @@ size is less than the arena's capacity. This scinario is termed as
 "arena overflow". When the allocated memory needs to be freed,
 just free the entire arena.
 
-This program is a part of "hobby's_".
 Author: Harikrishna Mohan
 Date: 16-07-2024
 
+## HOW TO USE ##
+Arena *arena_init(uint64_t capacity)
+  -- initializes the arena chunk with a capacity of
+      ARENA_[8,16,32,..,2048] or any custom integer greater than 0.
+
+void *arena_alloc(Arena *arena, uint64_t size)
+  -- Returns required size of memory from the arena to use.
+      Returns NULL if the requested size is more than its capacity.
+
+void arena_visualize(const Arena *arena)
+  -- To get an overview of the arena.
+
+void arena_reset(Arena *arena)
+  -- resets the allocated sizes to 0, doesn't actually frees any memory.
+
+void arena_free(Arena *arena)
+  -- Deallocates the entire arena.
+
 Reference materials: https://m.youtube.com/watch?v=ZisNZcQn6fo&pp=ygULYXJlbmEgYWxsb2M%3D
 */
+
+#pragma once
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 
-// to toggle error messages.
-#define DEBUG 1
-
-#ifdef DEBUG
-#define DEBUG_PRINT(fmt, ...) \
-  do { if (DEBUG) fprintf(stderr, fmt, ##__VA_ARGS__); } while (0)
-#endif
+#define ARENA_16 16
+#define ARENA_32 32
+#define ARENA_64 64
+#define ARENA_128 128
+#define ARENA_256 256
+#define ARENA_512 512
+#define ARENA_1024 1024
 
 typedef struct Arena {
   uint64_t capacity; // holds total capacity of the chunk.
@@ -39,19 +59,19 @@ typedef struct Arena {
 // ARENA_[8,16,32,..,2048] or any custom integer greater than 0.
 Arena *arena_init(uint64_t capacity) {
     if (capacity <= 0) {
-      DEBUG_PRINT("err! arena_init(): Capacity of arena must be greater than 0.\n");
+      perror("err! arena_init(): Capacity of arena must be greater than 0.\n");
       return NULL;
     }
 
     uint8_t *new_buffer = malloc(sizeof(uint8_t) * capacity);
     if (new_buffer == NULL) {
-      DEBUG_PRINT("err! arena_init(): Failed to allocate memory for new buffer.\n");
+      perror("err! arena_init(): Failed to allocate memory for new buffer.\n");
       return NULL;
     }
 
     Arena *arena = malloc(sizeof(Arena));
     if (arena == NULL) {
-      DEBUG_PRINT("err! arena_init(): Failed to allocate memory for arena.\n");
+      perror("err! arena_init(): Failed to allocate memory for arena.\n");
       return NULL;
     }
 
@@ -66,7 +86,7 @@ Arena *arena_init(uint64_t capacity) {
 // Returns NULL if the requested size is more than its capacity.
 void *arena_alloc(Arena *arena, uint64_t size) {
   if (size > arena->capacity) {
-    DEBUG_PRINT("err! arena_alloc(): the requested size must be less than or equal to arena capacity.\n");    
+    perror("err! arena_alloc(): the requested size must be less than or equal to arena capacity.\n");    
     return NULL;
   }
   Arena *current = arena;

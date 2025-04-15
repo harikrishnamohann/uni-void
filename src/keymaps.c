@@ -1,4 +1,6 @@
-#include "../include/uni-void.h"
+#pragma once
+
+#include "../lib/uni-void.c"
 
 Key decode_key(int ch) {
   switch (ch) {

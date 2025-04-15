@@ -11,25 +11,35 @@ Hey all! This is a super simple tui-based game that I made for learning purposes
 ## 🔧 Build Instructions
 
 ### Requirements
+The following packages are needed to compile our game. Ensure that they exist before Compiling.
 
-- `gcc` or any C compiler
+- `gcc` compiler
 - `ncurses` development library
-- `make` build system for compiling all files
+- `make` build system for compiling all files (optional)
 
 ### Compile
 
+#### Compiling using makefile :
 ```bash
 git clone https://github.com/harikrishnamohann/uni-void.git
 cd uni-void
 make release
 ```
-An executable named uni-void should be produced inside the target directory 
+
+#### Compiling without makefile
+I implemented a unity build system. So you can just directly compile main.c into target/
+```bash
+  mkdir -p ./target
+  gcc -lncurses -o3 src/main.c -o target/uni-void
+```
+
+Now, an executable named uni-void should be produced inside the target directory 
 
 ### Run the game
 ```bash
 make run
 ```
-or
+OR
 ```bash
 ./target/uni-void
 ```

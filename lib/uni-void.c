@@ -1,5 +1,4 @@
-#ifndef UNI_VOID_H
-#define UNI_VOID_H
+#pragma once
 
 #include <ncurses.h>
 #include <stdio.h>
@@ -7,7 +6,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
-#include "../include/arena.h"
+#include "arena.c"
 
 // file for storing leaderboard info
 #define LEADERBOARD_FILE "game_files/leaderboard.csv"
@@ -77,46 +76,34 @@ struct game_state {
   Key redo_stack[STK_SIZE];
   int** mat; // our puzzle matrix
 };
+// initialize game_state data type.
+struct game_state game_state_init(Arena* arena, int order) {
+  struct game_state gs = {
+    .order = order,
+    .mode = order - MODE_OFFSET,
+    // since easy mode represents order 3 and index of easy mode
+    // is 1, easy mode = order - 2 (2 is the MODE_OFFSET).
+    .curs_x = -1,
+    .curs_y = -1,
+    .moves = 0,
+    .count_ctrl = count_stop,
+    .mat = arena_alloc(arena, sizeof(int*) * order),
+    // these are stack pointers for undo(utop) and redo(rtop) stacks.
+    .utop = -1,
+    .rtop = -1,
+  };
+  for (int i = 0; i < order; i++) {
+    gs.mat[i] = arena_alloc(arena, sizeof(int) * order);
+  }
+  return gs;
+}
 
-// main.c
-struct game_state game_state_init(Arena* arena, int order);
-struct status_line status_line_init(char* msg);
+// initialize status line with given message.
+struct status_line status_line_init(char* msg) {
+  return (struct status_line) {
+    .moves = 0,
+    .key = 0,
+    .msg = msg
+  };
+}
 
-
-// utils.c
-// swaps x and y using xor operation.
-void swap(int *x, int *y);
-
-// push key into stack
-void push_key(Key stk[], int16_t *top, Key key);
-
-// pop key from stack
-Key pop_key(Key stk[], int16_t *top);
-
-// creates an array of whole numbers up to specified size and arranges them in random order.
-void make_radomized_array(int* arr, size_t size);
-
-// update move counter based on count_ctrl variable
-void update_moves(struct game_state* gs);
-
-// query the user and returns input of the query.
-char* input_str(const char* query);
-
-// display help dialog on a small window
-void display_usage();
-
-// keymap.c
-Key decode_key(int ch);
-
-
-
-// save_and_load.c
-void save_game_state(struct game_state* gs);
-struct game_state load_game_state(Arena* arena);
-
-
-
-// leaderboard.c
-void display_leaderboards(const struct game_state* gs, char* name);
-
-#endif
