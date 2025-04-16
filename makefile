@@ -12,11 +12,11 @@ run: target target/$(DEBUG)
 	./target/$(DEBUG)
 
 
-target/$(RELEASE): src/main.c
-	$(CC) -o3 $(CFLAGS) $^ -o $@
+target/$(RELEASE): src/*
+	$(CC) -o3 -std=c23 -lncurses src/main.c -o $@
 
-target/$(DEBUG): src/main.c
-	$(CC) -g $^ -o $@ $(CFLAGS)
+target/$(DEBUG): src/*
+	$(CC) -g $(CFLAGS) src/main.c -o $@ 
 
 # directory check
 target:

@@ -14,7 +14,6 @@ just like "//" in c.
 here is the structure of csv file:
   order, moves, player name, timestamp
 */
-
 #pragma once 
 
 #include "../lib/uni-void.c"
