@@ -19,6 +19,8 @@ here is the structure of csv file:
 
 #include "../lib/uni-void.c"
 #include "../lib/arena.c"
+#include "csv_parser.c"
+#include "utils.c"
 
 // maximum number of lines when printing leaderboard
 #define LEADERBOARD_ENTRIES 8
@@ -33,85 +35,8 @@ static Arena* csv_arena;
   time_t time;
 };
 
-typedef enum {
-  tok_invalid,
-  tok_num,
-  tok_str,
-  tok_seperator,
-  tok_end_record,
-  tok_quote,
-  tok_comment,
-  tok_eof,
-} toktype;
-
-struct token {
-  toktype type;
-  char* lexeme;
-};
-
-static inline bool is_whitespace(char ch) { return (ch == ' ') || ch == '\t' || ch =='\r'; }
-static inline bool is_digit(char ch) { return (ch >= '0' && ch <= '9'); }
-static inline bool is_eol(char ch) { return (ch == '\n' || ch == '\0'); }
-// conditions for ordering
-static inline bool order_dec(uint16_t a, uint16_t b) { return a < b; }
-static inline bool order_asc(uint16_t a, uint16_t b) { return a > b; }
-
-// token initializer
-static struct token token_init(Arena* arena, toktype type, char* lexeme) {
-  struct token tok;
-  tok.type = type;
-  tok.lexeme = arena_alloc(arena, strlen(lexeme) + 1);
-  strcpy(tok.lexeme, lexeme);
-  return tok;
-}
-
-// decodes token type from read character.
-static toktype decode_toktype(char ch) {
-  if (is_digit(ch)) return tok_num;
-  else if (is_eol(ch)) return tok_end_record;
-  else if (ch == '"') return tok_quote;
-  else if (ch == ',') return tok_seperator;
-  else if (ch == '#') return tok_comment;
-  return tok_invalid;
-}
-
-// returns a function and traverse file pointer.
-static struct token tok_next_token(FILE* fp) {
-  static bool quoting = false; // used to track whether double-quotes are on or not
-
-  char buf[100]; // buffer for storing current token
-  size_t i;
-  toktype token_type;
-
-  while ((*buf = fgetc(fp)) != EOF) {
-    i = 0;
-    while (is_whitespace(*buf)) *buf = fgetc(fp); // skipping white spaces    
-    token_type = decode_toktype(*buf); // fetching token type
-    buf[i + 1] = '\0';
-    switch (token_type) {
-      case tok_end_record : goto ret;
-      case tok_seperator : break; // skips separators
-      case tok_quote : quoting = true; break; // string type is coming.
-      case tok_comment : while (!is_eol(*buf)) *buf = fgetc(fp); break; // skips comments
-      default :
-        if (quoting) { // traverse till next quote and returns tok_str type
-          while (decode_toktype(buf[i]) != tok_quote) buf[++i] = fgetc(fp);
-          token_type = tok_str;
-          quoting = false;
-        } else if (token_type == tok_num) { // this should be numbers
-          while (decode_toktype(buf[i]) == token_type) buf[++i] = fgetc(fp); // traverse till a non-number character is found.
-          fseek(fp, -1, SEEK_CUR); // rewinds file pointer back by one position
-        }
-        buf[i] = '\0';
-        goto ret;
-    }
-  }  
-  ret:
-    return token_init(csv_arena, (*buf == EOF) ? tok_eof : token_type, buf);
-}
-
-// initialize leaderboard type
-static struct leaderboard_record highscore_init(uint16_t order, uint16_t moves, char* name, time_t time) {
+// // initialize leaderboard type
+static struct leaderboard_record leader_board_init(uint16_t order, uint16_t moves, char* name, time_t time) {
   return (struct leaderboard_record) {
     .order = order,
     .moves = moves,
@@ -122,27 +47,16 @@ static struct leaderboard_record highscore_init(uint16_t order, uint16_t moves, 
 
 // parses next valid record. skips empty-lines and csv header.
 // a record means a full row of in the csv file.
-static struct leaderboard_record parse_next_record(FILE* fp) {
-  int8_t top = 0, total_fields = 5; 
-  struct token tok_record[total_fields];
-  struct leaderboard_record record = {0, 0, NULL, 0};
-
-  while (top < total_fields) {
-    tok_record[top] = tok_next_token(fp);
-    // ignore updating top if an invalid token is recieved as first token. 
-    if (top == 0 && tok_record[0].type != tok_num && tok_record[0].type != tok_eof) continue; 
-    top++;
+static struct leaderboard_record parse_next_leaderboard_entry(String* lexer, Token* tokens, int32_t record_len) {
+  if (parse_next_record(lexer, tokens, record_len) == HALT) {
+    return (struct leaderboard_record) { 0, 0, NULL, 0 };
   }
-
-  if (tok_record[0].type != tok_eof) {
-    record = highscore_init(
-                            atoi(tok_record[0].lexeme),
-                            atoi(tok_record[1].lexeme),
-                            tok_record[2].lexeme,
-                            atoi(tok_record[3].lexeme)
-                          ); 
-  }
-  return record;
+  return leader_board_init(
+           str_to_int64(tokens[0].lexeme),
+           str_to_int64(tokens[1].lexeme),
+           str_dup(tokens[2].lexeme).str,
+           str_to_int64(tokens[3].lexeme)
+         );
 }
 
 // parse the csv file into memory.
@@ -150,29 +64,33 @@ static struct leaderboard_record parse_next_record(FILE* fp) {
 // this way, a single file can be used to store records of all game modes.
 // returns number of records read from file.
 static uint32_t load_leaderboard(struct leaderboard_record *records, uint16_t order) {
-  if (access(LEADERBOARD_FILE, F_OK) != 0) {
-    fclose(fopen(LEADERBOARD_FILE, "w"));
-  }
   FILE* fp = fopen(LEADERBOARD_FILE, "r");
   if (fp == NULL) {
+    return 0;
   }
 
-  struct leaderboard_record tmp_record = parse_next_record(fp);
+  String file = file_to_str(LEADERBOARD_FILE);
+  Token* tokens;
+  int record_len = record_init(&file, &tokens);
+
+  struct leaderboard_record tmp_record = parse_next_leaderboard_entry(&file, tokens, record_len);
   uint16_t j = 0;
   if (order == 0) { // parse all records.
     while (tmp_record.order != 0) {
       records[j++] = tmp_record;
-      tmp_record = parse_next_record(fp);
+      tmp_record = parse_next_leaderboard_entry(&file, tokens, record_len);
     }
   } else {
     while (j < LEADERBOARD_ENTRIES && tmp_record.order != 0) {
       if (tmp_record.order == order) { // add records with specific order
         records[j++] = tmp_record;
       }
-      tmp_record = parse_next_record(fp);
+      tmp_record = parse_next_leaderboard_entry(&file, tokens, record_len);
     }
   }
   fclose(fp);
+  str_free(&file);
+  free(tokens);
   return j;
 }
 
@@ -209,7 +127,6 @@ static void save_record(const struct leaderboard_record* new_record) {
   }
 
   // saves the records with a new_record entry.
-  fprintf(fp, "# don't edit this file ok XD\n");
   fprintf(fp, "\"Order\",\"Moves\",\"Player\",\"Time\"\n");
   for (size_t i = 0; i < read_entries; i++) {
     fprintf(fp, "%d,%d,\"%s\",%lu\n", all_records[i].order, all_records[i].moves, all_records[i].player_name, all_records[i].time);
@@ -222,7 +139,7 @@ void display_leaderboards(const struct game_state* gs, char* name) {
   csv_arena = arena_init(ARENA_1024); // initializes new arena context
 
   char* player_name = strdup(name);
-  struct leaderboard_record new_record = highscore_init(gs->order, gs->moves, player_name, time(NULL));
+  struct leaderboard_record new_record = leader_board_init(gs->order, gs->moves, player_name, time(NULL));
   save_record(&new_record);
 
   struct leaderboard_record *records = arena_alloc(csv_arena, sizeof(struct leaderboard_record) * LEADERBOARD_ENTRIES);

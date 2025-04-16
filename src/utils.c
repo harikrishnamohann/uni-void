@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../lib/uni-void.c"
+#include "../lib/strings.c"
 
 // swaps x and y using xor.
 void swap(int *x, int *y) { *x = *x ^ *y; *y = *x ^ *y; *x = *x ^ *y; }
@@ -85,4 +86,35 @@ void display_usage() {
   wrefresh(usage_win);
   delwin(usage_win);
 }
+
+String file_to_str(char* filename) {
+  String file = str_declare(SCALABLE);
+  FILE* fp = fopen(filename, "r");
+  if (fp == NULL) {
+    debug_raise_err(FILE_NOT_FOUND, filename);
+    return file;
+  }
+
+  int ch;
+
+  while ((ch = fgetc(fp)) != EOF) str_insert(&file, STR_END, ch);
+  fclose(fp);
+  file.scalable = false;
+  return file;
+}
+
+void str_to_file(char* filename, String content) {
+  FILE* fp = fopen(filename, "w");
+  if (fp == NULL) {
+    debug_raise_err(FILE_NOT_FOUND, filename);
+    return;
+  }
+
+  fwrite(content.str, sizeof(char), content.length, fp);
+
+  fclose(fp);
+}
+
+bool order_dec(uint16_t a, uint16_t b) { return a < b; }
+bool order_asc(uint16_t a, uint16_t b) { return a > b; }
 
