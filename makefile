@@ -1,4 +1,8 @@
-CC = clang
+CC := $(shell command -v clang 2>/dev/null || command -v gcc 2>/dev/null)
+ifeq ($(CC),)
+$(error Neither clang nor gcc found in PATH)
+endif
+
 CFLAGS = -std=c23 -Wall -Werror -lncurses
 DEBUG = debug
 RELEASE = uni-void

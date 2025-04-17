@@ -11,11 +11,11 @@ Hey all! This is a super simple tui-based game that I made for learning purposes
 ## 🔧 Build Instructions
 
 ### Requirements
-The following packages are needed to compile our game. Ensure that they exist before Compiling.
+The following packages are needed to compile the game. Ensure that they exist before Compiling.
 
-- `gcc` compiler
+- `clang` or `gcc` compiler
 - `ncurses` development library
-- `make` build system for compiling all files (optional)
+- `make` for compiling all files (optional)
 
 ### Compile
 
@@ -50,12 +50,12 @@ OR
 
 | Key | Action |
 |-----|--------|
-| Arrow Keys / WASD /vim-keys | Move void tile |
-| `?` | Show usage/help |
+| Arrow Keys / WASD /vim-keys | Movement keys |
+| `?` | Show help dialog |
 | `Enter` | Select menu item |
 | `u` | Undo last move |
-| `r` | Redo last undone move |
-| `q` | Quit game |
+| `r` | Redo undone move |
+| `qq` | save and quit game |
 | `Q` | Force quit (no save) |
 
 ---
