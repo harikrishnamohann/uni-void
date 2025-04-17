@@ -44,6 +44,20 @@ static struct leaderboard_record leader_board_init(uint16_t order, uint16_t move
   };
 }
 
+// Returns null terminated c string. you have to use free() on returned pointer.
+char*  str_to_cstring(const String* s) {
+  char* cstring = arena_alloc(csv_arena, (sizeof(char) * s->length) + 1);
+  if (cstring == NULL) {
+    debug_raise_err(MALLOC_FAILURE, NULL);
+  } 
+  for (size_t i = 0; i < s->length; i++) cstring[i] = s->str[i];
+  cstring[s->length] = '\0';
+  return cstring;
+}
+
+bool order_dec(uint16_t a, uint16_t b) { return a < b; }
+bool order_asc(uint16_t a, uint16_t b) { return a > b; }
+
 // parses next valid record. skips empty-lines and csv header.
 // a record means a full row of in the csv file.
 static struct leaderboard_record parse_next_leaderboard_entry(String* lexer, Token* tokens, int32_t record_len) {
@@ -53,7 +67,7 @@ static struct leaderboard_record parse_next_leaderboard_entry(String* lexer, Tok
   return leader_board_init(
            str_to_int64(tokens[0].lexeme),
            str_to_int64(tokens[1].lexeme),
-           str_dup(tokens[2].lexeme).str,
+           str_to_cstring(&tokens[2].lexeme),
            str_to_int64(tokens[3].lexeme)
          );
 }
@@ -146,8 +160,8 @@ void display_leaderboards(const struct game_state* gs, char* name) {
   size_t read_records_count = load_leaderboard(records, gs->order);
 
   if (read_records_count) {
+    int rank = 0;
     sort_records_using_moves(records, read_records_count, (gs->mode == mode_hard) ? order_dec : order_asc);
-    uint8_t rank;
     for (int i = 0; i < read_records_count; i++) {
       if (strcmp(records[i].player_name, player_name) == 0 && records[i].moves == new_record.moves) {
         rank = i;

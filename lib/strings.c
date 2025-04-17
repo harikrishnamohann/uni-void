@@ -1,128 +1,145 @@
-/* 
-  This is a custom string library that I designed to simulate
-  dynamic string behavior. It uses a length variable to keep
-  track of the end of string instead of null-terminating,
-  A capacity to indicate string boundry and a scalable flag
-  to augment resizable array behaviour.
-
-  Scalability: 
-    There are two type of strings.
-    1. scalable :
-      String using array-list. you can use the str_insert() and
-      str_remove() function to insert and remove characters from String.
-      you can declare a scalable string by passing SCALABLE macro
-      as parameter to str_declare() function
-        example: String s = str_declare(SCALABLE);
-
-    2. non-scalable :
-      It's just a regular array. To create one, 
-      you just have to specify the array size on declaration.
-        example: String buffer = str_declare(128);
-
-  Most of the functions relays on `debug_raise_err()` (defined in "err.c")
-  for error reporting and returns status codes defined in err.c (usually...).
-  Memory allocated for strings must be explicitly freed from where
-  the allocating function is called using `str_free()`.
-
-  ## HOW TO USE ##
-
-  String str_declare(uint64_t capacity)
-    -- Initializes an empty string with the specified capacity.
-       If capacity == SCALABLE, it enables automatic scaling.
-       Caller must free it using str_free().
-
-  String str_init(const char* s)
-    -- Initializes a String from a null-terminated C string.
-
-  int str_insert(String* str, int64_t index, char ch)
-    -- Inserts a character at the specified index (supports negative indexing).
-       Resizes the buffer if the string is scalable.
-
-  char str_remove(String* str, int64_t index)
-    -- Removes and returns the character at the specified index.
-       Supports negative indexing.
-
-  void str_offset(String* s, int64_t offset);
-    -- Moves the pointer to a relative position based on specified offset.
-
-  void str_rewind(String* s)
-    -- rewinds offseted string back to 0
-
-  String str_dup(String str)
-    -- Returns a deep copy of the given string. Caller must free it.
-
-  const String str_slice(String str, int start, int end)
-    -- Returns a *view* (non-owning reference) into a non-scalable substring.
-       No memory is allocated. Useful for efficient slicing.
-
-  String str_owned_slice(String* s, uint64_t start, uint64_t end)
-    -- Returns an owning reference into a non-scalable String.
-       The Returned slice will be removed from original string.
-       No memory is allocated.
-       you can either pass the slice or the original string into str_free() once.
-
-  String str_join(String a, String b)
-    -- Returns a new string by concatenating `a` and `b`.
-       The resultant is scalable if either a or b is scalable.
-       Caller must free the memory allocated for return value.
-
-  int str_concat(String* dest, const String src)
-    -- Appends `src` to `dest`. Requires `dest` to be scalable.
-
-  int str_copy(String* dest, const String src)
-    -- Replaces contents of `dest` with `src`. Resizes if needed.
-       Requires `dest` to be scalable.
-
-  int str_cmp(const String a, const String b)
-    -- Lexicographical comparison: 
-       returns 0 if equal, >0 if a > b, <0 if a < b.
-
-  String str_compose(const char* fmt, ...)
-    -- Returns a non-scalable formatted String (like sprintf).
-       Caller must free.
-
-  int64_t str_contains(const String src, const char* key, uint64_t key_len)
-    -- Returns the index of the first occurrence of `key` in `src`, or RECONSIDER.
-
-  int64_t str_to_int64(const String s)
-    -- Converts the string to int64_t. Returns RECONSIDER if invalid input.
-
-  double str_to_double(const String s)
-    -- Converts the string to a double. Returns RECONSIDER on failure.
-
-  int str_replace_first(String* str, int start, const char* key, uint32_t key_len, const char* target, uint32_t target_len)
-    -- Replaces the first occurrence of `key` (after `start`) with `target`.
-       Resizes if necessary. Requires str to be scalable.
-
-  void str_replace_all(String* str, const char* key, uint32_t key_len, const char* replace_with, uint32_t val_len)
-    -- Replaces all occurrences of `key` with `replace_with`.
-
-  String str_read_file(char* filename)
-    -- Reads given file and return it as a non-scalable string.
-       Returns an empty string on error.
-       The user should free the returnd string after use.
-
-  int str_write_to_file(char* filename, const String s)
-    -- Writes given string to filename.
-    -- Returns PROCEED on success.
-
-  void str_free(String* str)
-    -- Frees the memory allocated for the string and resets metadata.
-
-  ## MACROS ##
-
-  str_replace_first_using_str(str_ptr, start, key_str, target_str)
-    -- Macro version of str_replace_first() using String types.
-
-  str_replace_all_using_str(str_ptr, key_str, target_str)
-    -- Macro version of str_replace_all() using String types.
-
-  str_contains_using_str(src_str, key_str)
-    -- Macro version of str_contains() using String types.
-
-Author: Harikrishna Mohan  
-Date: April-11-2025
-*/
+/*
+ * This is a string library that I implemented for having a better time
+ * messing with C. I tried to implement most of the basic String operations
+ * I can think of. I also implemented some features for the love of writing
+ * string parsers. To be clear, all the operations related to the offset
+ * parameter of String type is built up on my limited knolowed about building
+ * simple parsers.
+ *
+ * In this implementation, strings are not meant to be null-terminated.
+ * String's length is available in the type itself for concluding the end.
+ * There are two kinds of strings:
+ * 1. Scalable: Scalable strings can resize itself like Vector in C++;
+ *    Example: String s = str_declare(SCALABLE);
+ * 2. Non-scalable: These are strings with fixed size.
+ *    Example: String buffer = str_declare(128);
+ *
+ * Most functions rely on `debug_raise_err()` (defined in "err.c") for error
+ * reporting and return status codes defined in err.c.
+ *
+ **************************************************************************
+ * [IMPORTANT NOTE!] Memory management:
+ * Memory allocated using any of the function that returns a String type
+ * must be released by calling str_free(). 
+ **************************************************************************
+ *
+ *
+ * ## Function Reference ##
+ *
+ * ### Creation and Initialization ###
+ *
+ * String str_declare(uint64_t capacity)
+ * Initializes an empty string with the specified capacity.
+ * `capacity = SCALABLE` enables automatic scaling.
+ *
+ * String str_init(const char* s)
+ * Initializes a String from a null-terminated C string.
+ *
+ * ### Insertion and Deletion ###
+ *
+ * int str_insert(String* str, int64_t index, char ch)
+ * Inserts a character at the specified index (supports negative indexing).
+ * Resizes the string exponentially if it is scalable. Returns status code.
+ *
+ * char str_remove(String* str, int64_t index)
+ * Removes and returns the character at the specified index (supports negative indexing).
+ * Returns RECONSIDER on error.
+ *
+ * ### String Manipulation ###
+ *
+ * String str_dup(const String* s)
+ * Returns a deep copy of the given string. The caller is responsible for freeing the memory.
+ *
+ * String str_join(String a, String b)
+ * Returns a new string by concatenating `a` and `b`.
+ * The result is scalable if either `a` or `b` is scalable.
+ * The caller is responsible for freeing the memory.
+ *
+ * int str_concat(String* dest, const String src)
+ * Appends the contents of `src` to the end of `dest`.
+ * Requires `dest` to be scalable. Returns status code.
+ *
+ * int str_copy(String* dest, const String src)
+ * Replaces the contents of `dest` with the contents of `src`.
+ * Resizes `dest` if needed. Requires `dest` to be scalable. Returns status code.
+ *
+ * int str_replace_first(String* str, int start, const char* key, uint32_t key_len, const char* target, uint32_t target_len)
+ * Replaces the first occurrence of `key` within `str` (starting from `start`)
+ * with `target`. Resizes `str` if necessary. Requires `str` to be scalable.
+ * Returns the index after the replacement or RECONSIDER on error.
+ *
+ * void str_replace_all(String* str, const char* key, uint32_t key_len, const char* replace_with, uint32_t val_len)
+ * Replaces all occurrences of `key` within `str` with `replace_with`.
+ * Requires `str` to be scalable.
+ *
+ * ### Substring Operations ###
+ *
+ * const String str_slice(const String* str, uint64_t start, uint64_t end)
+ * Returns a non-owning reference (view) into a substring of a non-scalable string.
+ * No new memory is allocated.
+ *
+ * String str_owned_slice(String* s, uint64_t start, uint64_t end)
+ * Returns an owning reference to a substring of a non-scalable String.
+ * The extracted slice is moved to the beginning of the original string,
+ * and the original string's internal pointer is offset.
+ * The caller can free either the slice or the original string once.
+ *
+ * ### String Comparison ###
+ *
+ * int str_cmp(const String a, const String b)
+ * Performs a lexicographical comparison between `a` and `b`.
+ * Returns 0 if equal, >0 if `a` > `b`, and <0 if `a` < `b`.
+ *
+ * ### Searching ###
+ *
+ * int64_t str_contains(const String src, const char* key, uint64_t key_len)
+ * Returns the index of the first occurrence of `key` within `src`,
+ * or RECONSIDER if `key` is not found.
+ *
+ * ### String Formatting ###
+ *
+ * String str_compose(const char* fmt, ...)
+ * Returns a non-scalable formatted String, similar to `sprintf`.
+ * The caller is responsible for freeing the memory.
+ *
+ * ### Type Conversion ###
+ *
+ * int64_t str_to_int64(const String s)
+ * Converts the string `s` to an `int64_t`.
+ * Returns RECONSIDER if the input string is not a valid integer.
+ *
+ * double str_to_double(const String s)
+ * Converts the string `s` to a `double`.
+ * Returns RECONSIDER on failure (e.g., invalid input).
+ *
+ * char*  str_to_cstring(const String* s)
+ * Returns null terminated c string. you have to use free() on returned pointer.
+ *
+ * ### Utility Functions ###
+ *
+ * void str_offset(String* s, int64_t offset)
+ * Moves the internal pointer to a relative position based on the specified offset.
+ *
+ * void str_rewind(String* s)
+ * Rewinds the internal pointer of an offset string back to the beginning (offset 0).
+ *
+ * void str_free(String* str)
+ * Frees the memory allocated for the string and resets its metadata.
+ *
+ * ### Macro Shorthands ###
+ *
+ * int64_t str_contains_using_str(const String src_str, const String key_str)
+ * A shorthand for `str_contains()` that accepts String types for both source and key.
+ *
+ * int str_replace_first_using_str(String* str_ptr, int start, String key_str, String target_str)
+ * A shorthand for `str_replace_first()` that accepts String types for key and target.
+ *
+ * void str_replace_all_using_str(String* str_ptr, String key_str, String target_str)
+ * A shorthand for `str_replace_all()` that accepts String types for key and replacement.
+ *
+ * Author: Harikrishna Mohan
+ * Date: April-11-2025
+ */
 
 #pragma once
 
@@ -138,6 +155,9 @@ Date: April-11-2025
 #define SCALABLE 0
 #define STR_BEGIN 0
 #define STR_END -1
+
+// scale factor for scalable strings
+#define SCALE_FACTOR 2.0
 
 typedef struct {
   char* str;
@@ -185,6 +205,14 @@ String str_init(const char* s) {
   return str;
 }
 
+void _str_scale(String* s, float scale_factor) {
+  s->str = realloc(s->str, (uint64_t)(s->capacity * scale_factor));
+  if (s->str == NULL) {
+    debug_raise_err(MALLOC_FAILURE, "Failed to scale string!");
+  }
+  s->capacity *= scale_factor;
+}
+
 // Inserts a character at the specified index (supports negative indexing).
 // Resizes the string exponentially if the string is scalable.
  int str_insert(String* s, int64_t pos, char ch) {
@@ -199,11 +227,7 @@ String str_init(const char* s) {
   // deal with string capacity
   if (s->length >= s->capacity) { // string is full
     if (s->scalable) { // reallocate if the user want an arraylist
-      s->str = realloc(s->str, s->capacity * 2);
-      if (s->str == NULL) {
-        debug_raise_err(MALLOC_FAILURE, "failed to resize string.");
-      }
-      s->capacity *= 2;
+      _str_scale(s, SCALE_FACTOR);
     } else { // not possible to add more characters
       debug_raise_err(INDEX_OUT_OF_BOUNDS, "str is not scalable");
       return RECONSIDER;
@@ -261,15 +285,15 @@ void str_rewind(String* s) {
 }
 
 // Returns a deep copy of the given string. Caller must free it.
-String str_dup(String s) {
-  String dup = str_declare(s.capacity);
+String str_dup(const String* s) {
+  String dup = str_declare(s->capacity);
   if (dup.capacity == 0) {
     debug_raise_err(NULL_REFERENCE, "failed to create duplicate");
     return dup;
   }
-  dup.length = s.length;
-  dup.scalable = s.scalable;
-  for (int i = 0; i < s.length; i++) dup.str[i] = s.str[i];
+  dup.length = s->length;
+  dup.scalable = s->scalable;
+  for (int i = 0; i < s->length; i++) dup.str[i] = s->str[i];
   return dup;
 }
 
@@ -338,7 +362,7 @@ String str_join(String a, String b) {
 // Appends `src` to `dest`. Requires `dest` to be scalable.
 int str_concat(String *dest, const String src) {
   if (!dest->scalable) {
-    debug_raise_err(RESIZE_ERR, "dest is not resizeable"); 
+    debug_raise_err(RESIZE_ERR, "dest is not scalable"); 
     return HALT;
   }
   dest->capacity += src.capacity;
@@ -351,11 +375,11 @@ int str_concat(String *dest, const String src) {
   return 0;
 }
 
-// Replaces contents of `dest` with `src`. Resizes if needed.
+// Replaces contents of `dest` with `src`. scales if needed.
 // Requires `dest` to be scalable.
 int str_copy(String *dest, const String src) {
   if (!dest->scalable) {
-    debug_raise_err(RESIZE_ERR, "dest is not resizeable"); 
+    debug_raise_err(RESIZE_ERR, "dest is not scalable"); 
     return HALT;
   }
   if (dest->capacity < src.length) {
@@ -492,11 +516,11 @@ double str_to_double(const String s) {
 }
 
 // Replaces the first occurrence of `key` (after `start`) with `target`.
-// Resizes if necessary.
+// Scales if necessary.
 // Requires str to be scalable.
 int str_replace_first(String* s, int start, const char* search_key, uint32_t key_len, const char* target, uint32_t target_len) {
   if (!s->scalable) {
-    debug_raise_err(RESIZE_ERR, "dest is not resizeable"); 
+    debug_raise_err(RESIZE_ERR, "dest is not Scalable type"); 
     return HALT;
   }
   if (start < 0 || start >= s->length) {
@@ -533,11 +557,7 @@ int str_replace_first(String* s, int start, const char* search_key, uint32_t key
   } else if (diff < 0) { // target string is longer than search_key
     diff *= -1;
     if (s->length + diff > s->capacity) {
-      s->str = realloc(s->str, sizeof(char) * (s->capacity + diff) + 1);
-      if (s->str == NULL) {
-        debug_raise_err(MALLOC_FAILURE, "failed to reallocate memory for replacement");
-      }
-      s->capacity += diff;
+      _str_scale(s, 1.5);
       s->length += diff;
       for (int j = s->length - 1; j >= span_end; j--) {
         s->str[j + diff] = s->str[j];
@@ -559,6 +579,7 @@ void str_replace_all(String* s, const char* search_key, uint32_t key_length, con
   while ((pos = str_replace_first(s, pos, search_key, key_length, replace_with, val_length)) != -1);
 }
 
+
 // Frees the memory allocated for the string and resets metadata.
 void str_free(String* s) {
   s->capacity = 0;
@@ -568,14 +589,14 @@ void str_free(String* s) {
   s->str = NULL;
 }
 
-// Macro version of str_replace_first() using String types.
+// shorthand of str_replace_first() using String types.
 #define str_replace_first_using_str(str_ptr, start, key_str, target_str) \
   str_replace_first(str_ptr, start, key_str.str, key_str.length, target_str.str, target_str.length)
 
-// Macro version of str_replace_all() using String types.
+// shorthand of str_replace_all() using String types.
 #define str_replace_all_using_str(str_ptr, key_str, target_str) \
   str_replace_all(str_ptr, key_str.str, key_str.length, target_str.str, target_str.length)
 
-// Macro version of str_contains() using String types.
+// shorthand of str_contains() using String types.
 #define str_contains_using_str(src_str, key_str) \
   (str_contains(src_str, key_str.str, key_str.length))

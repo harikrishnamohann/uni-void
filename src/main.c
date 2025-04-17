@@ -281,7 +281,7 @@ int main(int argc, char* argv[]) {
   }
 
   bool completed = false, undoing; // flags to indicate game completion and undo-redo operation
-  Key key; // store keyboard input keys
+  Key key = key_invalid; // store keyboard input keys
   Counter counter; // to indicate wheather or not to update move count.
   // when void-tile is in any edge, we don't want to count
   // moves that tries to go off that edge.

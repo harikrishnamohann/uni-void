@@ -115,6 +115,4 @@ void str_to_file(char* filename, String content) {
   fclose(fp);
 }
 
-bool order_dec(uint16_t a, uint16_t b) { return a < b; }
-bool order_asc(uint16_t a, uint16_t b) { return a > b; }
 
