@@ -88,10 +88,9 @@ void display_usage() {
 }
 
 String file_to_str(char* filename) {
-  String file = str_declare(SCALABLE);
+  String file = str_declare(STR_DYNAMIC);
   FILE* fp = fopen(filename, "r");
   if (fp == NULL) {
-    debug_raise_err(FILE_NOT_FOUND, filename);
     return file;
   }
 
@@ -99,14 +98,13 @@ String file_to_str(char* filename) {
 
   while ((ch = fgetc(fp)) != EOF) str_insert(&file, STR_END, ch);
   fclose(fp);
-  file.scalable = false;
+  file.mutable = false;
   return file;
 }
 
 void str_to_file(char* filename, String content) {
   FILE* fp = fopen(filename, "w");
   if (fp == NULL) {
-    debug_raise_err(FILE_NOT_FOUND, filename);
     return;
   }
 

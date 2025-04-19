@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../lib/strings.c"
+#include "../lib/err.c"
 
 #define ONCE 1
 
@@ -20,11 +21,6 @@ typedef struct {
 bool is_whitespace(char ch) { return (ch == ' ') || ch == '\t' || ch =='\r' || ch == '\v'; }
 bool is_end_of_line(char ch) { return (ch == '\n' || ch == '\0'); }
 
-/**
- * @brief Determines the TokType of a given character.
- * @param ch The character to decode.
- * @return The corresponding TokType.
- */
 TokType decode_ch(char ch) {
   if (is_end_of_line(ch)) return tok_end_record;
   else if (ch == ',') return tok_seperator;
@@ -32,11 +28,6 @@ TokType decode_ch(char ch) {
   else return tok_val;
 }
 
-/**
- * @brief Parses the next token from the input String.
- * @param lexer Pointer to the String being parsed. The lexer's position is advanced.
- * @return The parsed Token.
- */
 Token parse_next_token(String* lexer) {
   if (lexer->length == 0) {
     return (Token) {
@@ -53,21 +44,21 @@ Token parse_next_token(String* lexer) {
     tok.type = decode_ch((*lexer->str));
     switch (tok.type) {
       case tok_end_record :
-        tok.lexeme = str_owned_slice(lexer, STR_BEGIN, 1);
+        tok.lexeme = str_slice_head(lexer, STR_BEGIN, 1);
         goto ret;
       case tok_quote :
         quoting = true;
         str_offset(lexer, ONCE);
         break;
       case tok_seperator :
-        tok.lexeme = str_owned_slice(lexer, STR_BEGIN, 1);
+        tok.lexeme = str_slice_head(lexer, STR_BEGIN, 1);
         goto ret;
       default :
         span = 0;
         if (quoting) {
           while (lexer->str[span++] != '"' && span < lexer->length);
           span--;
-          tok.lexeme = str_owned_slice(lexer, STR_BEGIN, span);
+          tok.lexeme = str_slice_head(lexer, STR_BEGIN, span);
           str_offset(lexer, ONCE);
           quoting = false;
         } else {
@@ -75,7 +66,7 @@ Token parse_next_token(String* lexer) {
             tok.type = decode_ch(lexer->str[span]);
             span++;
           }
-          tok.lexeme = str_owned_slice(lexer, STR_BEGIN, span - 1);
+          tok.lexeme = str_slice_head(lexer, STR_BEGIN, span - 1);
           tok.type = tok_val;
         }
         goto ret;
@@ -85,12 +76,6 @@ Token parse_next_token(String* lexer) {
     return tok;
 }
 
-/**
- * @brief Initializes a record by counting cells in the next line.
- * @param lexer Pointer to the String being parsed. The lexer's position is advanced.
- * @param dest Pointer to a Token pointer where the allocated record will be stored.
- * @return The number of cells in the record.
- */
 uint32_t record_init(String* lexer, Token** dest) {
   TokType tok;
   int32_t cells = 0;
@@ -103,18 +88,11 @@ uint32_t record_init(String* lexer, Token** dest) {
 
   *dest = malloc(sizeof(Token) * cells);
   if (*dest == NULL) {
-    debug_raise_err(MALLOC_FAILURE, "failed to create record");
+    return HALT;
   }
   return cells;
 }
 
-/**
- * @brief Parses the next record from the lexer into the provided Token array.
- * @param lexer Pointer to the String being parsed. The lexer's position is advanced.
- * @param record Array of Tokens to store the parsed record.
- * @param record_len The expected number of tokens in the record.
- * @return PROCEED on success, HALT on EOF or incorrect record length.
- */
 int parse_next_record(String* lexer, Token* record, uint32_t record_len) {
   Token tok = parse_next_token(lexer);
   if (tok.type == tok_eof) return HALT;
@@ -132,5 +110,5 @@ int parse_next_record(String* lexer, Token* record, uint32_t record_len) {
   if (tok_count != record_len) {
     return HALT;
   }
-  return PROCEED;
+  return OK;
 }
