@@ -2,11 +2,13 @@
 
 echo -n "Compiler: "
 echo -en "\e[32m"
-if command -v clang 
+if command -v clang > ./tmp
 then
+  echo "clang"
   CC=clang
-elif command -v gcc
+elif command -v gcc > ./tmp
 then
+  echo "gcc"
   CC=gcc
 else
   echo -e "\e[31mNot found\e[0m"
@@ -15,7 +17,7 @@ fi
 echo -en "\e[0m"
 
 echo -n "ncurses development library: "
-if ! ldconfig -p | grep ncurses > /tmp/null
+if ! ldconfig -p | grep ncurses > ./tmp
 then
   echo -e "\e[31mNot found\e[0m"
   eixt -1
@@ -61,3 +63,5 @@ case $2 in
     ./$BIN
     ;;
 esac
+
+rm ./tmp

@@ -78,20 +78,20 @@ uint64_t str_len(const char* str) {
 // Moves the internal pointer of the string by the specified relative offset.
 // Returns OK on success, BAD on invalid offset.
 int8_t str_offset(String* s, int64_t offset) {
-  if (offset == 0) _RETURN_OK(OK);
+  if (offset == 0) _RETURN_OK(SUCCESS);
   if (offset > (signed)s->length || offset * -1 > (signed)s->offset) {
     _RETURN_ERR(BAD, "%s(): invalid offset position", __FUNCTION__);
   }
   s->length -= offset;
   s->offset += offset;
   s->str += offset;
-  _RETURN_OK(OK);
+  _RETURN_OK(SUCCESS);
 }
 
 // Rewinds the internal pointer of an offset string back to the beginning (offset 0).
 // Returns the original offset on success, OK if the offset was already 0.
 int64_t str_rewind(String* s) {
-  if (s->offset == 0) _RETURN_OK(OK);
+  if (s->offset == 0) _RETURN_OK(SUCCESS);
   int64_t current_offset = s->offset;
   s->length += current_offset;
   s->str -= current_offset;
@@ -120,7 +120,7 @@ int8_t str_scale(String* s, float scale_factor) {
   str_offset(s, offset);
 
   s->capacity *= scale_factor;
-  _RETURN_OK(OK);
+  _RETURN_OK(SUCCESS);
 }
 
 // Prints detailed debug information about a String object. This is primarily for internal debugging.
@@ -207,7 +207,7 @@ String str_init(const char* s) {
 
   s->str[pos] = ch;
   s->length++;
-  _RETURN_OK(OK);
+  _RETURN_OK(SUCCESS);
 }
 
 // Removes and returns the character at the specified index (supports negative indexing).
@@ -326,7 +326,7 @@ int8_t str_concat(String *dest, const String* src) {
 
   for (int i = dest->length, j = 0; j < src->length; i++, j++) dest->str[i] = src->str[j];
   dest->length += src->length;
-  _RETURN_OK(OK);
+  _RETURN_OK(SUCCESS);
 }
 
 // Replaces the contents of `dest` with the contents of `src`.
@@ -352,7 +352,7 @@ int8_t str_copy(String *dest, const String* src) {
     dest->str[i] = src->str[i];
   }
   dest->length = src->length;
-  _RETURN_OK(OK);
+  _RETURN_OK(SUCCESS);
 }
 
 // Performs a lexicographical comparison between `a` and `b`.
@@ -496,7 +496,7 @@ int str_replace_first(String* s, int start, const char* search_key, uint32_t key
     _RETURN_ERR(BAD, "%s(): invalid start index", __FUNCTION__);    
   }
   if (str_cmp(&(String){(char*)search_key, key_len, key_len}, &(String){(char*)target, target_len, target_len}) == 0) {
-    _RETURN_OK(OK); // no need of replacement if key and value are same. just return.
+    _RETURN_OK(SUCCESS); // no need of replacement if key and value are same. just return.
   }
   int64_t span_start = str_contains(s, start, search_key, key_len);
   if (span_start == BAD) { // return if key is not present in s
@@ -534,7 +534,7 @@ int8_t str_replace_all(String* s, const char* search_key, uint32_t key_len, cons
   }
 
   if (str_cmp(&(String){(char*)search_key, key_len, key_len}, &(String){(char*)target, target_len, target_len}) == 0) {
-    _RETURN_OK(OK); // no need of replacement if key and value are same. just return.
+    _RETURN_OK(SUCCESS); // no need of replacement if key and value are same. just return.
   }
 
   int64_t select_start = str_contains(s, 0, search_key, key_len);
@@ -564,7 +564,7 @@ int8_t str_replace_all(String* s, const char* search_key, uint32_t key_len, cons
     }
     select_start = str_contains(s, select_start + target_len, search_key, key_len);
   }
-  _RETURN_OK(OK);
+  _RETURN_OK(SUCCESS);
 }
 
 int8_t str_to_upper(String* s) {
@@ -573,7 +573,7 @@ int8_t str_to_upper(String* s) {
       s->str[i] = 'A' +  s->str[i] - 'a';
     }
   }  
-  _RETURN_OK(OK);
+  _RETURN_OK(SUCCESS);
 }
 
 int8_t str_to_lower(String* s) {
@@ -582,7 +582,7 @@ int8_t str_to_lower(String* s) {
       s->str[i] = 'a' +  s->str[i] - 'A';
     }
   }  
-  _RETURN_OK(OK);
+  _RETURN_OK(SUCCESS);
 }
 
 // Returns a null-terminated C string. The caller is responsible for freeing the returned pointer using `free()`.
