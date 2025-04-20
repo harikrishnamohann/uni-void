@@ -17,10 +17,10 @@ fi
 echo -en "\e[0m"
 
 echo -n "ncurses development library: "
-if ! ldconfig -p | grep ncurses > ./tmp
+if ! whereis ncurses | grep '/' > ./tmp
 then
   echo -e "\e[31mNot found\e[0m"
-  eixt -1
+  exit -1
 fi
 
 echo -e "\e[32mfound\e[0m"
