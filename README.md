@@ -23,7 +23,7 @@ The following packages are required to compile the game.
 git clone https://github.com/harikrishnamohann/uni-void.git
 cd uni-void
 chmod +x ./built.sh
-./built.sh release run
+./build.sh release run
 ```
 
 Now, an executable named uni-void should be produced inside the target directory 

@@ -15,7 +15,7 @@ fi
 echo -en "\e[0m"
 
 echo -n "ncurses development library: "
-if ! pkg-config --exists ncurses
+if ! ldconfig -p | grep ncurses > /tmp/null
 then
   echo -e "\e[31mNot found\e[0m"
   eixt -1
@@ -50,7 +50,7 @@ case $1 in
     compile_release
     ;;
   *)
-    echo "Usage: $0 [debug|release] [run(optional)]"
+    compile_debug
     exit 1
     ;;
 esac
