@@ -40,13 +40,8 @@ Reference materials: https://m.youtube.com/watch?v=ZisNZcQn6fo&pp=ygULYXJlbmEgYW
 #include <stdlib.h>
 #include <stdint.h>
 
-#define ARENA_16 16
-#define ARENA_32 32
-#define ARENA_64 64
-#define ARENA_128 128
-#define ARENA_256 256
-#define ARENA_512 512
-#define ARENA_1024 1024
+#include "err.c"
+_Thread_local char arena_err[ERR_BUF_SIZE];
 
 typedef struct Arena {
   uint64_t capacity; // holds total capacity of the chunk.
@@ -58,37 +53,30 @@ typedef struct Arena {
 // initializes the arena chunk with a capacity of 
 // ARENA_[8,16,32,..,2048] or any custom integer greater than 0.
 Arena *arena_init(uint64_t capacity) {
-    if (capacity <= 0) {
-      perror("err! arena_init(): Capacity of arena must be greater than 0.\n");
-      return NULL;
-    }
+    if (capacity <= 0)
+      return_halt(arena_err, NULL, "%s(): Capacity of arena must be greater than 0.", __FUNCTION__);
 
     uint8_t *new_buffer = malloc(sizeof(uint8_t) * capacity);
-    if (new_buffer == NULL) {
-      perror("err! arena_init(): Failed to allocate memory for new buffer.\n");
-      return NULL;
-    }
+    if (new_buffer == NULL)
+      return_halt(arena_err, NULL, "%s(): Failed to allocate memory for new buffer.", __FUNCTION__);
 
     Arena *arena = malloc(sizeof(Arena));
-    if (arena == NULL) {
-      perror("err! arena_init(): Failed to allocate memory for arena.\n");
-      return NULL;
-    }
+    if (arena == NULL)
+      return_halt(arena_err, NULL, "%s(): Failed to allocate memory for arena", __FUNCTION__);
 
     arena->capacity = capacity;
     arena->buf_size = 0;
     arena->arena_buf = new_buffer;
     arena->next_arena = NULL;
-  return arena;
+    return_ok(arena_err, arena);
 }
 
 // Returns required size of memory from the arena to use.
 // Returns NULL if the requested size is more than its capacity.
 void *arena_alloc(Arena *arena, uint64_t size) {
-  if (size > arena->capacity) {
-    perror("err! arena_alloc(): the requested size must be less than or equal to arena capacity.\n");    
-    return NULL;
-  }
+  if (size > arena->capacity)
+    return_bad(arena_err, NULL, "%s(): The requested size must be less than or equal to arena capacity", __FUNCTION__);
+
   Arena *current = arena;
   // if the requsted size does not fit inside the current instance,
   // create a new arena instance and traverse into it.
@@ -103,7 +91,7 @@ void *arena_alloc(Arena *arena, uint64_t size) {
   // an address to next unused space.
   void *mem_buf = current->arena_buf + current->buf_size;
   current->buf_size += size;
-  return mem_buf;  
+  return_ok(arena_err, mem_buf);
 }
 
 // To get an overview of the arena.

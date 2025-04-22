@@ -44,16 +44,15 @@ static struct leaderboard_record leader_board_init(uint16_t order, uint16_t move
   };
 }
 
-// Returns null terminated c string. you have to use free() on returned pointer.
+// Returns a null-terminated C string. The caller is responsible for freeing the returned pointer using `free()`.
+// Returns NULL on memory allocation failure.
 char*  str_to_cstring(const String* s) {
-  char* cstring = malloc((sizeof(char) * s->length) + 1);
-  if (cstring == NULL) {
-    _RETURN_ERR(NULL, "%s(): malloc failure", __FUNCTION__);
-  } 
+  char* cstring = err_expect(arena_err, arena_alloc(csv_arena, (sizeof(char) * s->length) + 1));
   for (size_t i = 0; i < s->length; i++) cstring[i] = s->str[i];
   cstring[s->length] = '\0';
-  _RETURN_OK(cstring);
+  return_ok(str_err, cstring);
 }
+
 bool order_dec(uint16_t a, uint16_t b) { return a < b; }
 bool order_asc(uint16_t a, uint16_t b) { return a > b; }
 
@@ -148,8 +147,7 @@ static void save_record(const struct leaderboard_record* new_record) {
 
 // saves new entry to csv file and display leaderboard.
 void display_leaderboards(const struct game_state* gs, char* name) {
-  csv_arena = arena_init(ARENA_1024); // initializes new arena context
-
+  csv_arena = err_expect(arena_err, arena_init(1024)); // initializes new arena context
   char* player_name = strdup(name);
   struct leaderboard_record new_record = leader_board_init(gs->order, gs->moves, player_name, time(NULL));
   save_record(&new_record);

@@ -236,7 +236,7 @@ uint16_t choose_mode(struct status_line status) {
 
 int main(int argc, char* argv[]) {
   srand(time(NULL));
-  Arena *arena = arena_init(ARENA_128);
+  Arena *arena = err_expect(arena_err, arena_init(128));
 
   struct game_state gs;
 

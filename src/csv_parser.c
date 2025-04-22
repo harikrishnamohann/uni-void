@@ -18,6 +18,8 @@ typedef struct {
   String lexeme;
 } Token;
 
+#define TOK_EOF (Token) {tok_eof, STR_EMPTY}
+
 bool is_whitespace(char ch) { return (ch == ' ') || ch == '\t' || ch =='\r' || ch == '\v'; }
 bool is_end_of_line(char ch) { return (ch == '\n' || ch == '\0'); }
 
@@ -29,36 +31,33 @@ TokType decode_ch(char ch) {
 }
 
 Token parse_next_token(String* lexer) {
-  if (lexer->length == 0) {
-    return (Token) {
-    .type = tok_eof,
-    .lexeme = (String) { NULL, 0, 0, 0, 0 },
-    };
-  }
+  if (lexer->length == 0) return TOK_EOF;
 
   Token tok;
   bool quoting = false;
   uint32_t span = 0;
   while (lexer->length > 0) {
-    while (is_whitespace(*lexer->str)) str_offset(lexer, ONCE);
+    while (is_whitespace(*lexer->str)) {
+      err_expect(str_err, str_offset(lexer, ONCE));
+    }
     tok.type = decode_ch((*lexer->str));
     switch (tok.type) {
       case tok_end_record :
-        tok.lexeme = str_slice_head(lexer, STR_BEGIN, 1);
+        tok.lexeme = err_expect(str_err, str_slice_head(lexer, STR_BEGIN, 1));
         goto ret;
       case tok_quote :
         quoting = true;
-        str_offset(lexer, ONCE);
+        err_expect(str_err, str_offset(lexer, ONCE));
         break;
       case tok_seperator :
-        tok.lexeme = str_slice_head(lexer, STR_BEGIN, 1);
+        tok.lexeme = err_expect(str_err, str_slice_head(lexer, STR_BEGIN, 1));
         goto ret;
       default :
         span = 0;
         if (quoting) {
           while (lexer->str[span++] != '"' && span < lexer->length);
           span--;
-          tok.lexeme = str_slice_head(lexer, STR_BEGIN, span);
+        tok.lexeme = err_expect(str_err, str_slice_head(lexer, STR_BEGIN, span));
           str_offset(lexer, ONCE);
           quoting = false;
         } else {
@@ -66,7 +65,7 @@ Token parse_next_token(String* lexer) {
             tok.type = decode_ch(lexer->str[span]);
             span++;
           }
-          tok.lexeme = str_slice_head(lexer, STR_BEGIN, span - 1);
+          tok.lexeme = err_expect(str_err, str_slice_head(lexer, STR_BEGIN, span - 1));
           tok.type = tok_val;
         }
         goto ret;
@@ -81,10 +80,10 @@ uint32_t record_init(String* lexer, Token** dest) {
   int32_t cells = 0;
   while ((tok = decode_ch(*lexer->str)) != tok_end_record) {
     if (tok == tok_seperator) cells++;
-    str_offset(lexer, ONCE);
+    err_expect(str_err, str_offset(lexer, ONCE));
   }
   cells++;
-  str_offset(lexer, ONCE);
+  err_expect(str_err, str_offset(lexer, ONCE));
 
   *dest = malloc(sizeof(Token) * cells);
   if (*dest == NULL) {
